@@ -2,21 +2,32 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Geis - Dispečink Svozů</title>
     <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Oprava pro správné fungování ikony na iOS -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link class="apple-touch-icon" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .hidden-tab { display: none; }
         .active-tab { display: block; }
-        body { -webkit-tap-highlight-color: transparent; }
+        body { 
+            -webkit-tap-highlight-color: transparent;
+            /* Respektování výřezů u iOS zařízení */
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+        }
+        .pb-safe {
+            padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+        }
     </style>
 </head>
-<body class="bg-gray-50 font-sans antialiased text-gray-900 pb-24">
+<body class="bg-gray-50 font-sans antialiased text-gray-900">
 
     <header class="bg-white text-slate-900 p-4 shadow-sm sticky top-0 z-10 border-b-4 border-[#96c11f] flex justify-between items-center">
         <div class="flex items-center gap-3">
@@ -93,7 +104,7 @@
                 <div id="modalFormContainer"></div>
 
                 <div class="space-y-2">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Historie dnešních nakládek vozivel:</p>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Historie dnešních nakládek vozidel:</p>
                     <div id="modalHistoryContainer" class="space-y-1.5 max-h-48 overflow-y-auto pr-1"></div>
                 </div>
                 
@@ -111,7 +122,15 @@
             <button onclick="renderStats('week')" id="btn-stat-week" class="flex-1 bg-[#96c11f] text-slate-900 py-2 rounded-lg font-bold shadow-sm text-sm transition-colors">Tento týden</button>
             <button onclick="renderStats('month')" id="btn-stat-month" class="flex-1 bg-white text-slate-700 py-2 rounded-lg font-bold shadow-sm border text-sm transition-colors">Tento měsíc</button>
         </div>
-        <h2 class="text-lg font-bold text-slate-800 uppercase tracking-tight" id="statsTitle">Statistiky</h2>
+        
+        <div class="flex justify-between items-center">
+            <h2 class="text-lg font-bold text-slate-800 uppercase tracking-tight" id="statsTitle">Statistiky</h2>
+            <!-- Tlačítko pro export do Excelu -->
+            <button id="btnExportExcel" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 shadow-sm transition-colors">
+                📥 Export do Excelu
+            </button>
+        </div>
+
         <div id="statsContent" class="space-y-4"></div>
     </main>
 
@@ -155,7 +174,7 @@
         </div>
     </main>
 
-    <nav class="fixed bottom-0 w-full bg-white border-t border-gray-200 p-3 flex justify-around shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-safe">
+    <nav class="fixed bottom-0 w-full bg-white border-t border-gray-200 p-3 flex justify-around shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-safe z-10">
         <button id="nav-counter" onclick="switchTab('counter', event)" class="text-[#96c11f] flex flex-col items-center transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
             <span class="text-[10px] mt-1 font-semibold tracking-wide">Mřížka</span>
@@ -175,7 +194,8 @@
         const defaultDrivers = ["KINDA","DVOŘÁK","PUTERKA","VRABEC","DOLEŽAL","KŘÍŽ","DUŽDA","VAŇÁTKO","DAVID","BAŽANT","KLEIN","PARTEL","SVYATYLO","HAVEL","KOCOUREK","DRAPÁK","RICHTER","BÁRTA"];
 
         let currentTargetId = null;
-        let currentGridFilter = 'all'; // Globální stav filtru pro mřížku
+        let currentGridFilter = 'all'; 
+        let currentStatsPeriod = 'week';
 
         if (!localStorage.getItem('customers')) localStorage.setItem('customers', JSON.stringify(defaultCustomers));
         if (!localStorage.getItem('drivers')) localStorage.setItem('drivers', JSON.stringify(defaultDrivers));
@@ -185,7 +205,14 @@
         const today = new Date();
         document.getElementById('currentDateDisplay').textContent = today.toLocaleDateString('cs-CZ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-        const getTodayStr = () => new Date().toISOString().split('T')[0];
+        // Lokální bezpečné zjištění dnešního dne bez vlivu posunu UTC času
+        const getTodayStr = () => {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
 
         function createDailyTarget() {
             const customer = document.getElementById('targetCustomer').value;
@@ -235,14 +262,14 @@
 
             const t = targets[idx];
             
-            const novéFP = prompt(`Upravit cílové FP pro ${t.customer}:`, t.targetFP);
-            if (novéFP === null) return;
+            const noveFP = prompt(`Upravit cílové FP pro ${t.customer}:`, t.targetFP);
+            if (noveFP === null) return;
             
-            const novéKH = prompt(`Upravit cílové KH pro ${t.customer}:`, t.targetKH);
-            if (novéKH === null) return;
+            const noveKH = prompt(`Upravit cílové KH pro ${t.customer}:`, t.targetKH);
+            if (noveKH === null) return;
 
-            targets[idx].targetFP = parseInt(novéFP) || 0;
-            targets[idx].targetKH = parseInt(novéKH) || 0;
+            targets[idx].targetFP = parseInt(noveFP) || 0;
+            targets[idx].targetKH = parseInt(noveKH) || 0;
 
             localStorage.setItem('dailyTargets', JSON.stringify(targets));
             
@@ -393,11 +420,15 @@
             });
             localStorage.setItem('pickups', JSON.stringify(pickups));
             
+            // Podpora vibrační odezvy na mobilech
+            if (navigator.vibrate) {
+                navigator.vibrate([100, 50, 100]);
+            }
+            
             renderCounterTab();
             renderModalContent();
         }
 
-        // Správa stavu tlačítek filtrace
         function setGridFilter(filter) {
             currentGridFilter = filter;
             const btnAll = document.getElementById('filter-all');
@@ -430,7 +461,6 @@
                 return;
             }
 
-            // Výpočet stavů a příprava struktury pro řazení a filtry
             let targetData = todayTargets.map(t => {
                 const tPickups = pickups.filter(p => p.targetId === t.id);
                 const loadedFP = tPickups.reduce((sum, p) => sum + p.fp, 0);
@@ -455,7 +485,6 @@
                 };
             });
 
-            // Inteligentní řazení: Čekající s nejvíce zbývajícími paletami jdou nahoru, hotoví spadnou dolů
             targetData.sort((a, b) => {
                 if (a.isDone !== b.isDone) {
                     return a.isDone ? 1 : -1;
@@ -463,7 +492,6 @@
                 return b.totalRemaining - a.totalRemaining;
             });
 
-            // Filtrace na základě vybraného segmentu
             if (currentGridFilter === 'pending') {
                 targetData = targetData.filter(item => !item.isDone);
             } else if (currentGridFilter === 'done') {
@@ -516,6 +544,7 @@
         }
 
         function renderStats(period) {
+            currentStatsPeriod = period;
             const btnWeek = document.getElementById('btn-stat-week');
             const btnMonth = document.getElementById('btn-stat-month');
             
@@ -531,15 +560,21 @@
 
             const pickups = JSON.parse(localStorage.getItem('pickups')) || [];
             const targets = JSON.parse(localStorage.getItem('dailyTargets')) || [];
+            
+            // Bezpečná práce s lokálním časem bez poškození původního data
             const now = new Date();
+            const nowCopy = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             let filteredPickups = [];
 
             if (period === 'week') {
-                const firstDayOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1)));
+                const dayOfWeek = nowCopy.getDay();
+                const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                const firstDayOfWeek = new Date(nowCopy.setDate(nowCopy.getDate() + diffToMonday));
                 firstDayOfWeek.setHours(0,0,0,0);
                 filteredPickups = pickups.filter(p => new Date(p.timestamp) >= firstDayOfWeek);
             } else {
-                const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                const firstDayOfMonth = new Date(nowCopy.getFullYear(), nowCopy.getMonth(), 1);
+                firstDayOfMonth.setHours(0,0,0,0);
                 filteredPickups = pickups.filter(p => new Date(p.timestamp) >= firstDayOfMonth);
             }
 
@@ -596,6 +631,82 @@
 
             content.innerHTML = html;
         }
+
+        // Funkce exportu dat do formátu CSV kompatibilního s MS Excel (středník a UTF-8 BOM)
+        function exportStatsToExcel() {
+            const periodText = currentStatsPeriod === 'week' ? 'tyden' : 'mesic';
+            const pickups = JSON.parse(localStorage.getItem('pickups')) || [];
+            const targets = JSON.parse(localStorage.getItem('dailyTargets')) || [];
+            
+            const now = new Date();
+            const nowCopy = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            let filteredPickups = [];
+
+            if (currentStatsPeriod === 'week') {
+                const dayOfWeek = nowCopy.getDay();
+                const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                const firstDayOfWeek = new Date(nowCopy.setDate(nowCopy.getDate() + diffToMonday));
+                firstDayOfWeek.setHours(0,0,0,0);
+                filteredPickups = pickups.filter(p => new Date(p.timestamp) >= firstDayOfWeek);
+            } else {
+                const firstDayOfMonth = new Date(nowCopy.getFullYear(), nowCopy.getMonth(), 1);
+                firstDayOfMonth.setHours(0,0,0,0);
+                filteredPickups = pickups.filter(p => new Date(p.timestamp) >= firstDayOfMonth);
+            }
+
+            // Agregace
+            let customerStats = {};
+            let driverStats = {};
+
+            filteredPickups.forEach(p => {
+                const targetObj = targets.find(t => t.id === p.targetId);
+                const custName = targetObj ? targetObj.customer : "Neznamy";
+
+                if (!customerStats[custName]) customerStats[custName] = { fp: 0, kh: 0 };
+                customerStats[custName].fp += p.fp;
+                customerStats[custName].kh += p.kh;
+
+                if (!driverStats[p.driver]) driverStats[p.driver] = { fp: 0, kh: 0, totalTrips: 0 };
+                driverStats[p.driver].fp += p.fp;
+                driverStats[p.driver].kh += p.kh;
+                driverStats[p.driver].totalTrips += 1;
+            });
+
+            // Sestavení obsahu CSV s využitím středníků
+            let csvContent = "";
+            
+            // Záhlaví zákazníků
+            csvContent += "PREHLED ODBERU OD ZAKAZNIKU\n";
+            csvContent += "Zakaznik;Nalozeno FP;Nalozeno KH\n";
+            for (const [cust, val] of Object.entries(customerStats)) {
+                csvContent += `${cust};${val.fp};${val.kh}\n`;
+            }
+            
+            csvContent += "\n";
+            
+            // Záhlaví řidičů
+            csvContent += "VYKON A VYTIZENI RIDICU\n";
+            csvContent += "Ridic;Nalozeno FP;Nalozeno KH;Pocet nakladek;Prepoctene palety\n";
+            for (const [driver, val] of Object.entries(driverStats)) {
+                const totalCalculated = val.fp + (val.kh * 0.5);
+                csvContent += `${driver};${val.fp};${val.kh};${val.totalTrips};${totalCalculated}\n`;
+            }
+
+            // Vytvoření souboru se správným kódováním pro Excel v češtině (UTF-8 s BOM)
+            const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute("href", url);
+            link.setAttribute("download", `geis_export_${periodText}_${getTodayStr()}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Propojení exportovacího tlačítka
+        document.getElementById('btnExportExcel').addEventListener('click', exportStatsToExcel);
 
         function renderSettingsTab() {
             const custs = JSON.parse(localStorage.getItem('customers')) || [];
@@ -708,6 +819,15 @@
             if(tabId === 'counter') renderCounterTab();
             if(tabId === 'stats') renderStats('week');
             if(tabId === 'settings') renderSettingsTab();
+        }
+
+        // Registrace Service Workeru pro offline podporu PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker úspěšně registrován.'))
+                    .catch(err => console.warn('Registrace Service Workeru selhala:', err));
+            });
         }
 
         renderSettingsTab();
