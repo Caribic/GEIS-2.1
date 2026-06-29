@@ -51,11 +51,13 @@
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="text-[11px] font-semibold text-gray-400 uppercase">Cíl FP</label>
-                        <input type="number" id="targetFP" value="0" min="0" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 mt-1 text-sm text-center font-bold h-10 shadow-sm">
+                        <!-- Odstraněna hodnota value="0", nahrazeno za placeholder a auto-select -->
+                        <input type="number" id="targetFP" placeholder="0" min="0" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 mt-1 text-sm text-center font-bold h-10 shadow-sm" onfocus="this.select()">
                     </div>
                     <div>
                         <label class="text-[11px] font-semibold text-gray-400 uppercase">Cíl KH</label>
-                        <input type="number" id="targetKH" value="0" min="0" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 mt-1 text-sm text-center font-bold h-10 shadow-sm">
+                        <!-- Odstraněna hodnota value="0", nahrazeno za placeholder a auto-select -->
+                        <input type="number" id="targetKH" placeholder="0" min="0" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 mt-1 text-sm text-center font-bold h-10 shadow-sm" onfocus="this.select()">
                     </div>
                 </div>
             </div>
@@ -125,7 +127,6 @@
         
         <div class="flex justify-between items-center">
             <h2 class="text-lg font-bold text-slate-800 uppercase tracking-tight" id="statsTitle">Statistiky</h2>
-            <!-- Tlačítko pro export do Excelu -->
             <button id="btnExportExcel" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 shadow-sm transition-colors">
                 📥 Export do Excelu
             </button>
@@ -205,7 +206,6 @@
         const today = new Date();
         document.getElementById('currentDateDisplay').textContent = today.toLocaleDateString('cs-CZ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-        // Lokální bezpečné zjištění dnešního dne bez vlivu posunu UTC času
         const getTodayStr = () => {
             const d = new Date();
             const year = d.getFullYear();
@@ -232,8 +232,9 @@
             targets.push({ id: Date.now().toString(), date: dateStr, customer, targetFP: fp, targetKH: kh });
             localStorage.setItem('dailyTargets', JSON.stringify(targets));
             
-            document.getElementById('targetFP').value = 0;
-            document.getElementById('targetKH').value = 0;
+            // Po uložení vyčistíme pole na prázdný řetězec namísto 0
+            document.getElementById('targetFP').value = '';
+            document.getElementById('targetKH').value = '';
             renderCounterTab();
         }
 
@@ -369,10 +370,12 @@
                                 <select id="modalDriverSelect" class="w-full bg-white border border-gray-300 rounded-lg p-2 text-xs font-bold text-slate-700 outline-none h-10 shadow-sm focus:border-[#96c11f]">${driverOptions}</select>
                             </div>
                             <div>
-                                <input type="number" id="modalPickupFP" value="0" min="0" class="w-full bg-white border border-gray-300 rounded-lg p-2 text-xs text-center font-bold text-slate-800 h-10 shadow-sm focus:border-[#96c11f]" placeholder="FP">
+                                <!-- Odstraněna výchozí hodnota value="0" pro rychlé psaní bez nutnosti mazat nulu -->
+                                <input type="number" id="modalPickupFP" placeholder="FP (0)" min="0" class="w-full bg-white border border-gray-300 rounded-lg p-2 text-xs text-center font-bold text-slate-800 h-10 shadow-sm focus:border-[#96c11f]" onfocus="this.select()">
                             </div>
                             <div>
-                                <input type="number" id="modalPickupKH" value="0" min="0" class="w-full bg-white border border-gray-300 rounded-lg p-2 text-xs text-center font-bold text-slate-800 h-10 shadow-sm focus:border-[#96c11f]" placeholder="KH">
+                                <!-- Odstraněna výchozí hodnota value="0" pro rychlé psaní bez nutnosti mazat nulu -->
+                                <input type="number" id="modalPickupKH" placeholder="KH (0)" min="0" class="w-full bg-white border border-gray-300 rounded-lg p-2 text-xs text-center font-bold text-slate-800 h-10 shadow-sm focus:border-[#96c11f]" onfocus="this.select()">
                             </div>
                         </div>
                         <button onclick="saveModalPickup('${t.id}')" class="w-full bg-slate-800 hover:bg-black text-white text-xs font-bold py-2.5 rounded-lg active:scale-[0.99] transition-transform shadow-sm">
@@ -420,7 +423,6 @@
             });
             localStorage.setItem('pickups', JSON.stringify(pickups));
             
-            // Podpora vibrační odezvy na mobilech
             if (navigator.vibrate) {
                 navigator.vibrate([100, 50, 100]);
             }
@@ -561,7 +563,6 @@
             const pickups = JSON.parse(localStorage.getItem('pickups')) || [];
             const targets = JSON.parse(localStorage.getItem('dailyTargets')) || [];
             
-            // Bezpečná práce s lokálním časem bez poškození původního data
             const now = new Date();
             const nowCopy = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             let filteredPickups = [];
@@ -632,7 +633,6 @@
             content.innerHTML = html;
         }
 
-        // Funkce exportu dat do formátu CSV kompatibilního s MS Excel (středník a UTF-8 BOM)
         function exportStatsToExcel() {
             const periodText = currentStatsPeriod === 'week' ? 'tyden' : 'mesic';
             const pickups = JSON.parse(localStorage.getItem('pickups')) || [];
@@ -654,7 +654,6 @@
                 filteredPickups = pickups.filter(p => new Date(p.timestamp) >= firstDayOfMonth);
             }
 
-            // Agregace
             let customerStats = {};
             let driverStats = {};
 
@@ -672,10 +671,8 @@
                 driverStats[p.driver].totalTrips += 1;
             });
 
-            // Sestavení obsahu CSV s využitím středníků
             let csvContent = "";
             
-            // Záhlaví zákazníků
             csvContent += "PREHLED ODBERU OD ZAKAZNIKU\n";
             csvContent += "Zakaznik;Nalozeno FP;Nalozeno KH\n";
             for (const [cust, val] of Object.entries(customerStats)) {
@@ -684,7 +681,6 @@
             
             csvContent += "\n";
             
-            // Záhlaví řidičů
             csvContent += "VYKON A VYTIZENI RIDICU\n";
             csvContent += "Ridic;Nalozeno FP;Nalozeno KH;Pocet nakladek;Prepoctene palety\n";
             for (const [driver, val] of Object.entries(driverStats)) {
@@ -692,7 +688,6 @@
                 csvContent += `${driver};${val.fp};${val.kh};${val.totalTrips};${totalCalculated}\n`;
             }
 
-            // Vytvoření souboru se správným kódováním pro Excel v češtině (UTF-8 s BOM)
             const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             const url = URL.createObjectURL(blob);
@@ -705,7 +700,6 @@
             document.body.removeChild(link);
         }
 
-        // Propojení exportovacího tlačítka
         document.getElementById('btnExportExcel').addEventListener('click', exportStatsToExcel);
 
         function renderSettingsTab() {
@@ -821,7 +815,6 @@
             if(tabId === 'settings') renderSettingsTab();
         }
 
-        // Registrace Service Workeru pro offline podporu PWA
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
