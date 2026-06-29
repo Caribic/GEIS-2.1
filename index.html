@@ -56,11 +56,11 @@
         <div>
             <h3 class="font-bold text-gray-400 text-xs uppercase tracking-wider mb-2.5">Dnešní aktivní sledování odběru</h3>
             <div id="activeCountersList" class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                </div>
+            </div>
         </div>
     </main>
 
-    <div id="detailsModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 animate-fade-in">
+    <div id="detailsModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-xl flex flex-col max-h-[90vh] border border-gray-200">
             <div class="bg-slate-800 p-4 text-white flex justify-between items-start border-b-4 border-[#96c11f]">
                 <div>
@@ -73,11 +73,11 @@
             <div class="p-4 space-y-4 overflow-y-auto flex-1">
                 <div class="grid grid-cols-2 gap-2">
                     <div id="modalFPBox" class="text-center p-3 rounded-xl border">
-                        <span class="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Zbývá odvézt FP</span>
+                        <span id="modalFPLabel" class="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Zbývá odvézt FP</span>
                         <span id="modalRemainingFP" class="text-2xl font-black">0</span>
                     </div>
                     <div id="modalKHBox" class="text-center p-3 rounded-xl border">
-                        <span class="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Zbývá odvézt KH</span>
+                        <span id="modalKHLabel" class="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Zbývá odvézt KH</span>
                         <span id="modalRemainingKH" class="text-2xl font-black">0</span>
                     </div>
                 </div>
@@ -87,6 +87,12 @@
                 <div class="space-y-2">
                     <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Historie dnešních nakládek vozidel:</p>
                     <div id="modalHistoryContainer" class="space-y-1.5 max-h-48 overflow-y-auto pr-1"></div>
+                </div>
+                
+                <div class="pt-2 border-t border-gray-100 flex justify-end">
+                    <button id="btnDeleteTarget" class="text-xs text-red-500 hover:text-red-700 font-semibold p-1 transition-colors flex items-center gap-1">
+                        ✕ Odstranit zákazníka ze svozu
+                    </button>
                 </div>
             </div>
         </div>
@@ -120,6 +126,20 @@
             <div id="settingsDriversList" class="max-h-40 overflow-y-auto space-y-1 pr-1 text-sm"></div>
         </div>
 
+        <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200 space-y-3">
+            <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Zálohování a Přenos Dat</h2>
+            <p class="text-xs text-gray-500">Zálohujte si data, abyste o ně nepřišli při promazání prohlížeče nebo pro přenos do jiného telefonu.</p>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="exportData()" class="bg-slate-800 hover:bg-black text-white text-xs font-bold py-2.5 rounded-lg transition-colors shadow-sm">
+                    📥 Exportovat data
+                </button>
+                <label class="bg-gray-100 hover:bg-gray-200 text-slate-700 text-xs font-bold py-2.5 rounded-lg transition-colors shadow-sm text-center cursor-pointer block border border-gray-300">
+                    📤 Importovat data
+                    <input type="file" id="importFile" accept=".json" onchange="importData(event)" class="hidden">
+                </label>
+            </div>
+        </div>
+
         <div class="bg-red-50 rounded-xl p-4 border border-red-200">
             <h2 class="text-xs font-bold text-red-800 mb-1 uppercase tracking-wider">Resetovat veškerá data</h2>
             <p class="text-xs text-red-600 mb-3">Smaže historii všech svozů i nastavení na výchozí hodnoty.</p>
@@ -133,7 +153,7 @@
             <span class="text-[10px] mt-1 font-semibold tracking-wide">Mřížka</span>
         </button>
         <button id="nav-stats" onclick="switchTab('stats', event)" class="text-gray-400 flex flex-col items-center transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
             <span class="text-[10px] mt-1 font-semibold tracking-wide">Statistiky</span>
         </button>
         <button id="nav-settings" onclick="switchTab('settings', event)" class="text-gray-400 flex flex-col items-center transition-colors">
@@ -185,6 +205,11 @@
             currentTargetId = targetId;
             document.getElementById('detailsModal').classList.remove('hidden');
             document.getElementById('detailsModal').classList.add('flex');
+            
+            document.getElementById('btnDeleteTarget').onclick = function() {
+                deleteTarget(targetId);
+            };
+            
             renderModalContent();
         }
 
@@ -192,6 +217,33 @@
             currentTargetId = null;
             document.getElementById('detailsModal').classList.remove('flex');
             document.getElementById('detailsModal').classList.add('hidden');
+        }
+
+        function deleteTarget(targetId) {
+            if (confirm("Opravdu chcete tohoto zákazníka smazat z dnešního svozu? Smažou se i jeho dnešní zadané nakládky.")) {
+                let targets = JSON.parse(localStorage.getItem('dailyTargets')) || [];
+                let pickups = JSON.parse(localStorage.getItem('pickups')) || [];
+                
+                targets = targets.filter(t => t.id !== targetId);
+                pickups = pickups.filter(p => p.targetId !== targetId);
+                
+                localStorage.setItem('dailyTargets', JSON.stringify(targets));
+                localStorage.setItem('pickups', JSON.stringify(pickups));
+                
+                closeDetails();
+                renderCounterTab();
+            }
+        }
+
+        function deletePickup(pickupId) {
+            if (confirm("Opravdu chcete stornovat tuto nakládku řidiče? Palety se vrátí zpět do stavu k odvozu.")) {
+                let pickups = JSON.parse(localStorage.getItem('pickups')) || [];
+                pickups = pickups.filter(p => p.id !== pickupId);
+                localStorage.setItem('pickups', JSON.stringify(pickups));
+                
+                renderCounterTab();
+                renderModalContent();
+            }
         }
 
         function renderModalContent() {
@@ -208,19 +260,36 @@
             const loadedFP = tPickups.reduce((sum, p) => sum + p.fp, 0);
             const loadedKH = tPickups.reduce((sum, p) => sum + p.kh, 0);
             
-            const remainingFP = Math.max(0, t.targetFP - loadedFP);
-            const remainingKH = Math.max(0, t.targetKH - loadedKH);
-            const isDone = remainingFP === 0 && remainingKH === 0;
+            const diffFP = t.targetFP - loadedFP;
+            const diffKH = t.targetKH - loadedKH;
+            
+            const remainingFP = Math.max(0, diffFP);
+            const remainingKH = Math.max(0, diffKH);
+            const isDone = diffFP <= 0 && diffKH <= 0;
 
             document.getElementById('modalCustomerName').textContent = t.customer;
             document.getElementById('modalTargetInfo').textContent = `Plán svozu: FP: ${t.targetFP} | KH: ${t.targetKH}`;
 
-            document.getElementById('modalRemainingFP').textContent = remainingFP;
-            document.getElementById('modalRemainingKH').textContent = remainingKH;
-            
-            // Barevné podbarvení uvnitř modálu na základě zbývajících palet
-            document.getElementById('modalFPBox').className = remainingFP > 0 ? "text-center p-3 rounded-xl bg-gray-50 text-slate-800 border border-[#96c11f]" : "text-center p-3 rounded-xl bg-gray-100 text-gray-400 border border-gray-200";
-            document.getElementById('modalKHBox').className = remainingKH > 0 ? "text-center p-3 rounded-xl bg-gray-50 text-slate-800 border border-[#96c11f]" : "text-center p-3 rounded-xl bg-gray-100 text-gray-400 border border-gray-200";
+            // Logika barev a textu pro zbývající/převezené palety
+            if (diffFP < 0) {
+                document.getElementById('modalFPLabel').textContent = "Převezeno FP";
+                document.getElementById('modalRemainingFP').textContent = Math.abs(diffFP);
+                document.getElementById('modalFPBox').className = "text-center p-3 rounded-xl bg-orange-50 text-orange-700 border border-orange-300";
+            } else {
+                document.getElementById('modalFPLabel').textContent = "Zbývá odvézt FP";
+                document.getElementById('modalRemainingFP').textContent = remainingFP;
+                document.getElementById('modalFPBox').className = remainingFP > 0 ? "text-center p-3 rounded-xl bg-gray-50 text-slate-800 border border-[#96c11f]" : "text-center p-3 rounded-xl bg-gray-100 text-gray-400 border border-gray-200";
+            }
+
+            if (diffKH < 0) {
+                document.getElementById('modalKHLabel').textContent = "Převezeno KH";
+                document.getElementById('modalRemainingKH').textContent = Math.abs(diffKH);
+                document.getElementById('modalKHBox').className = "text-center p-3 rounded-xl bg-orange-50 text-orange-700 border border-orange-300";
+            } else {
+                document.getElementById('modalKHLabel').textContent = "Zbývá odvézt KH";
+                document.getElementById('modalRemainingKH').textContent = remainingKH;
+                document.getElementById('modalKHBox').className = remainingKH > 0 ? "text-center p-3 rounded-xl bg-gray-50 text-slate-800 border border-[#96c11f]" : "text-center p-3 rounded-xl bg-gray-100 text-gray-400 border border-gray-200";
+            }
 
             const formContainer = document.getElementById('modalFormContainer');
             if (!isDone) {
@@ -256,8 +325,11 @@
             tPickups.forEach(p => {
                 historyHtml += `
                 <div class="flex justify-between items-center text-xs bg-white p-2.5 rounded-lg border border-gray-200 shadow-sm">
-                    <span class="font-bold text-slate-800">${p.driver}</span>
-                    <span class="text-gray-500">Odvezl: <b class="text-slate-800">${p.fp} FP</b> | <b class="text-slate-800">${p.kh} KH</b></span>
+                    <div class="flex flex-col">
+                        <span class="font-bold text-slate-800">${p.driver}</span>
+                        <span class="text-[11px] text-gray-500">Odvezl: <b>${p.fp} FP</b> | <b>${p.kh} KH</b></span>
+                    </div>
+                    <button onclick="deletePickup('${p.id}')" class="text-red-500 hover:text-red-700 font-bold px-2 text-sm" title="Stornovat nakládku">✕</button>
                 </div>`;
             });
             historyContainer.innerHTML = historyHtml || '<p class="text-xs text-gray-400 italic text-center py-2">Dnes zatím žádný řidič neodebíral.</p>';
@@ -304,9 +376,12 @@
                 const loadedFP = tPickups.reduce((sum, p) => sum + p.fp, 0);
                 const loadedKH = tPickups.reduce((sum, p) => sum + p.kh, 0);
                 
-                const remainingFP = Math.max(0, t.targetFP - loadedFP);
-                const remainingKH = Math.max(0, t.targetKH - loadedKH);
-                const isDone = remainingFP === 0 && remainingKH === 0;
+                const diffFP = t.targetFP - loadedFP;
+                const diffKH = t.targetKH - loadedKH;
+                
+                const remainingFP = Math.max(0, diffFP);
+                const remainingKH = Math.max(0, diffKH);
+                const isDone = diffFP <= 0 && diffKH <= 0;
 
                 let tileHtml = '';
                 if (isDone) {
@@ -317,7 +392,7 @@
                             <span class="text-[#96c11f] font-black text-xs">✓</span>
                         </div>
                         <div class="mt-3 text-[9px] font-black text-slate-800 bg-[#e3f0b9] py-1 rounded-md text-center uppercase tracking-wider">
-                            Odvezeno
+                            Odvezeno ${diffFP < 0 || diffKH < 0 ? ' / Převezeno' : ''}
                         </div>
                     </div>`;
                 } else {
@@ -326,12 +401,12 @@
                         <div class="font-bold text-slate-800 text-sm leading-tight break-words">${t.customer}</div>
                         <div class="mt-3 flex flex-col gap-0.5">
                             <div class="flex justify-between text-[11px]">
-                                <span class="text-gray-400 font-medium">Zbývá FP:</span>
-                                <span class="font-bold ${remainingFP > 0 ? 'text-slate-800' : 'text-gray-300'}">${remainingFP}</span>
+                                <span class="text-gray-400 font-medium">${diffFP < 0 ? 'Navíc FP:' : 'Zbývá FP:'}</span>
+                                <span class="font-bold ${diffFP < 0 ? 'text-orange-600' : (remainingFP > 0 ? 'text-slate-800' : 'text-gray-300')}">${diffFP < 0 ? Math.abs(diffFP) : remainingFP}</span>
                             </div>
                             <div class="flex justify-between text-[11px]">
-                                <span class="text-gray-400 font-medium">Zbývá KH:</span>
-                                <span class="font-bold ${remainingKH > 0 ? 'text-slate-800' : 'text-gray-300'}">${remainingKH}</span>
+                                <span class="text-gray-400 font-medium">${diffKH < 0 ? 'Navíc KH:' : 'Zbývá KH:'}</span>
+                                <span class="font-bold ${diffKH < 0 ? 'text-orange-600' : (remainingKH > 0 ? 'text-slate-800' : 'text-gray-300')}">${diffKH < 0 ? Math.abs(diffKH) : remainingKH}</span>
                             </div>
                         </div>
                     </div>`;
@@ -466,6 +541,39 @@
             list.splice(index, 1);
             localStorage.setItem(key, JSON.stringify(list));
             renderSettingsTab();
+        }
+
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(localStorage));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `geis_svozy_zaloha_${getTodayStr()}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (confirm("Opravdu chcete importovat tuto zálohu? Přepíše vaše aktuální data v aplikaci!")) {
+                        localStorage.clear();
+                        for (const [key, value] of Object.entries(importedData)) {
+                            localStorage.setItem(key, value);
+                        }
+                        alert("Data úspěšně importována!");
+                        location.reload();
+                    }
+                } catch (err) {
+                    alert("Chyba při načítání souboru. Ujistěte se, že jde o správný JSON soubor zálohy.");
+                }
+            };
+            reader.readAsText(file);
         }
 
         function hardReset() {
