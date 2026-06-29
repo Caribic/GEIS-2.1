@@ -64,13 +64,37 @@
         <div class="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-xl flex flex-col max-h-[90vh] border border-gray-200">
             <div class="bg-slate-800 p-4 text-white flex justify-between items-start border-b-4 border-[#96c11f]">
                 <div>
-                    <h4 id="modalCustomerName" class="text-xl font-black leading-tight uppercase">---</h4>
+                    <div class="flex items-center gap-2">
+                        <h4 id="modalCustomerName" class="text-xl font-black leading-tight uppercase">---</h4>
+                        <button onclick="toggleEditTargetForm()" class="text-gray-400 hover:text-white transition-colors" title="Upravit plán palet">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-1.536L6.5 21.036H3v-3.572L16.732 3.732a1.5 1.5 0 012.121 0z"></path></svg>
+                        </button>
+                    </div>
                     <p id="modalTargetInfo" class="text-xs text-slate-300 mt-0.5 font-medium">---</p>
                 </div>
                 <button onclick="closeDetails()" class="bg-slate-700 hover:bg-slate-600 text-white rounded-full p-1.5 text-xs font-bold w-7 h-7 flex items-center justify-center transition-colors">✕</button>
             </div>
             
             <div class="p-4 space-y-4 overflow-y-auto flex-1">
+                
+                <div id="editTargetForm" class="hidden bg-amber-50 p-3 rounded-xl border border-amber-200 space-y-2">
+                    <p class="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Upravit dnešní plán svozu</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] font-semibold text-amber-700 uppercase block">Nový cíl FP</label>
+                            <input type="number" id="editTargetFP" min="0" class="w-full bg-white border border-amber-300 rounded-lg p-1.5 text-xs text-center font-bold h-9 outline-none focus:border-amber-500">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-semibold text-amber-700 uppercase block">Nový cíl KH</label>
+                            <input type="number" id="editTargetKH" min="0" class="w-full bg-white border border-amber-300 rounded-lg p-1.5 text-xs text-center font-bold h-9 outline-none focus:border-amber-500">
+                        </div>
+                    </div>
+                    <div class="flex gap-2 pt-1">
+                        <button onclick="saveTargetEdit()" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-1.5 rounded-lg text-xs transition-colors shadow-sm">Uložit změny</button>
+                        <button onclick="toggleEditTargetForm()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold px-3 rounded-lg text-xs transition-colors">Zrušit</button>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-2 gap-2">
                     <div id="modalFPBox" class="text-center p-3 rounded-xl border">
                         <span id="modalFPLabel" class="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Zbývá odvézt FP</span>
@@ -205,6 +229,7 @@
             currentTargetId = targetId;
             document.getElementById('detailsModal').classList.remove('hidden');
             document.getElementById('detailsModal').classList.add('flex');
+            document.getElementById('editTargetForm').classList.add('hidden'); // Schovat formulář úprav při otevření nového okna
             
             document.getElementById('btnDeleteTarget').onclick = function() {
                 deleteTarget(targetId);
@@ -217,6 +242,44 @@
             currentTargetId = null;
             document.getElementById('detailsModal').classList.remove('flex');
             document.getElementById('detailsModal').classList.add('hidden');
+        }
+
+        function toggleEditTargetForm() {
+            const form = document.getElementById('editTargetForm');
+            if (form.classList.contains('hidden')) {
+                const targets = JSON.parse(localStorage.getItem('dailyTargets')) || [];
+                const t = targets.find(item => item.id === currentTargetId);
+                if (t) {
+                    document.getElementById('editTargetFP').value = t.targetFP;
+                    document.getElementById('editTargetKH').value = t.targetKH;
+                    form.classList.remove('hidden');
+                }
+            } else {
+                form.classList.add('hidden');
+            }
+        }
+
+        function saveTargetEdit() {
+            const newFP = parseInt(document.getElementById('editTargetFP').value) || 0;
+            const newKH = parseInt(document.getElementById('editTargetKH').value) || 0;
+
+            if (newFP === 0 && newKH === 0) {
+                alert('Cílové množství nemůže být nula. Pokud chcete svoz úplně zrušit, použijte tlačítko smazání níže.');
+                return;
+            }
+
+            let targets = JSON.parse(localStorage.getItem('dailyTargets')) || [];
+            const targetIdx = targets.findIndex(t => t.id === currentTargetId);
+
+            if (targetIdx !== -1) {
+                targets[targetIdx].targetFP = newFP;
+                targets[targetIdx].targetKH = newKH;
+                localStorage.setItem('dailyTargets', JSON.stringify(targets));
+                
+                document.getElementById('editTargetForm').classList.add('hidden');
+                renderCounterTab();
+                renderModalContent();
+            }
         }
 
         function deleteTarget(targetId) {
@@ -270,7 +333,6 @@
             document.getElementById('modalCustomerName').textContent = t.customer;
             document.getElementById('modalTargetInfo').textContent = `Plán svozu: FP: ${t.targetFP} | KH: ${t.targetKH}`;
 
-            // Logika barev a textu pro zbývající/převezené palety
             if (diffFP < 0) {
                 document.getElementById('modalFPLabel').textContent = "Převezeno FP";
                 document.getElementById('modalRemainingFP').textContent = Math.abs(diffFP);
