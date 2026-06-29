@@ -54,7 +54,15 @@
         </div>
 
         <div>
-            <h3 class="font-bold text-gray-400 text-xs uppercase tracking-wider mb-2.5">Dnešní aktivní sledování odběru</h3>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                <h3 class="font-bold text-gray-400 text-xs uppercase tracking-wider">Dnešní aktivní sledování odběru</h3>
+                <div class="flex bg-gray-200/70 p-0.5 rounded-lg text-xs font-semibold self-start sm:self-auto shadow-inner">
+                    <button onclick="setGridFilter('all')" id="filter-all" class="px-3 py-1 rounded-md transition-all bg-white text-slate-800 shadow-sm">Všechny</button>
+                    <button onclick="setGridFilter('pending')" id="filter-pending" class="px-3 py-1 rounded-md transition-all text-gray-500 hover:text-slate-800">Čekající</button>
+                    <button onclick="setGridFilter('done')" id="filter-done" class="px-3 py-1 rounded-md transition-all text-gray-500 hover:text-slate-800">Dokončené</button>
+                </div>
+            </div>
+            
             <div id="activeCountersList" class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             </div>
         </div>
@@ -85,7 +93,7 @@
                 <div id="modalFormContainer"></div>
 
                 <div class="space-y-2">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Historie dnešních nakládek vozidel:</p>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Historie dnešních nakládek vozivel:</p>
                     <div id="modalHistoryContainer" class="space-y-1.5 max-h-48 overflow-y-auto pr-1"></div>
                 </div>
                 
@@ -167,6 +175,7 @@
         const defaultDrivers = ["KINDA","DVOŘÁK","PUTERKA","VRABEC","DOLEŽAL","KŘÍŽ","DUŽDA","VAŇÁTKO","DAVID","BAŽANT","KLEIN","PARTEL","SVYATYLO","HAVEL","KOCOUREK","DRAPÁK","RICHTER","BÁRTA"];
 
         let currentTargetId = null;
+        let currentGridFilter = 'all'; // Globální stav filtru pro mřížku
 
         if (!localStorage.getItem('customers')) localStorage.setItem('customers', JSON.stringify(defaultCustomers));
         if (!localStorage.getItem('drivers')) localStorage.setItem('drivers', JSON.stringify(defaultDrivers));
@@ -289,7 +298,6 @@
             const remainingKH = Math.max(0, diffKH);
             const isDone = diffFP <= 0 && diffKH <= 0;
 
-            // Název s jasným, velkým a skvěle viditelným tlačítkem tužky
             document.getElementById('modalCustomerName').innerHTML = `
                 <div class="flex items-center gap-3">
                     <span>${t.customer}</span>
@@ -389,6 +397,25 @@
             renderModalContent();
         }
 
+        // Správa stavu tlačítek filtrace
+        function setGridFilter(filter) {
+            currentGridFilter = filter;
+            const btnAll = document.getElementById('filter-all');
+            const btnPending = document.getElementById('filter-pending');
+            const btnDone = document.getElementById('filter-done');
+            
+            [btnAll, btnPending, btnDone].forEach(b => {
+                b.className = "px-3 py-1 rounded-md transition-all text-gray-500 hover:text-slate-800";
+            });
+            
+            const activeBtn = document.getElementById(`filter-${filter}`);
+            if (activeBtn) {
+                activeBtn.className = "px-3 py-1 rounded-md transition-all bg-white text-slate-800 shadow-sm";
+            }
+            
+            renderCounterTab();
+        }
+
         function renderCounterTab() {
             const targets = JSON.parse(localStorage.getItem('dailyTargets')) || [];
             const pickups = JSON.parse(localStorage.getItem('pickups')) || [];
@@ -403,7 +430,8 @@
                 return;
             }
 
-            todayTargets.forEach(t => {
+            // Výpočet stavů a příprava struktury pro řazení a filtry
+            let targetData = todayTargets.map(t => {
                 const tPickups = pickups.filter(p => p.targetId === t.id);
                 const loadedFP = tPickups.reduce((sum, p) => sum + p.fp, 0);
                 const loadedKH = tPickups.reduce((sum, p) => sum + p.kh, 0);
@@ -414,6 +442,46 @@
                 const remainingFP = Math.max(0, diffFP);
                 const remainingKH = Math.max(0, diffKH);
                 const isDone = diffFP <= 0 && diffKH <= 0;
+                const totalRemaining = remainingFP + remainingKH;
+
+                return {
+                    target: t,
+                    diffFP,
+                    diffKH,
+                    remainingFP,
+                    remainingKH,
+                    isDone,
+                    totalRemaining
+                };
+            });
+
+            // Inteligentní řazení: Čekající s nejvíce zbývajícími paletami jdou nahoru, hotoví spadnou dolů
+            targetData.sort((a, b) => {
+                if (a.isDone !== b.isDone) {
+                    return a.isDone ? 1 : -1;
+                }
+                return b.totalRemaining - a.totalRemaining;
+            });
+
+            // Filtrace na základě vybraného segmentu
+            if (currentGridFilter === 'pending') {
+                targetData = targetData.filter(item => !item.isDone);
+            } else if (currentGridFilter === 'done') {
+                targetData = targetData.filter(item => item.isDone);
+            }
+
+            if (targetData.length === 0) {
+                container.innerHTML = '<div class="col-span-2 sm:col-span-3 md:col-span-4 text-sm text-gray-400 text-center py-6 bg-white rounded-xl border border-gray-200 font-medium shadow-sm">Žádní zákazníci neodpovídají vybranému filtru.</div>';
+                return;
+            }
+
+            targetData.forEach(item => {
+                const t = item.target;
+                const diffFP = item.diffFP;
+                const diffKH = item.diffKH;
+                const remainingFP = item.remainingFP;
+                const remainingKH = item.remainingKH;
+                const isDone = item.isDone;
 
                 let tileHtml = '';
                 if (isDone) {
