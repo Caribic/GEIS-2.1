@@ -1,22 +1,25 @@
-const CACHE_NAME = 'svoz-palet-v2'; // Zvýšení verze při úpravě logiky
+const CACHE_NAME = 'svoz-palet-v3'; 
+
+// Relativní cesty zajišťují kompatibilitu na jakékoliv doméně/složce na GitHubu
 const urlsToCache = [
-  '/GEIS-2.1/',
-  '/GEIS-2.1/index.html',
-  '/GEIS-2.1/manifest.json'
+  './',
+  'index.html',
+  'manifest.json',
+  'style.css'
 ];
 
-// Instalace a uložení do paměti (cache)
+// Instalace a uložení nezbytných souborů do paměti (cache)
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
         return cache.addAll(urlsToCache);
       })
-      .then(() => self.skipWaiting()) // Vynutí okamžitou aktivaci nové verze
+      .then(() => self.skipWaiting()) 
   );
 });
 
-// Zajištění načítání offline & odstranění staré cache
+// Aktivace nového Service Workeru a smazání starých verzí mezipaměti
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -31,7 +34,7 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Fetch handler
+// Strategie Cache-First s přechodem na síť
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
