@@ -1,4 +1,4 @@
-const CACHE_NAME = 'svoz-palet-v3';
+const CACHE_NAME = 'svoz-palet-v4';
 const urlsToCache = [
   './',
   './index.html',
