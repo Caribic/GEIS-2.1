@@ -13,6 +13,11 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase SDK (Compat verze pro zachování stability kódu) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
     <style>
         .hidden-tab { display: none; }
         .active-tab { display: block; }
@@ -84,7 +89,7 @@
             <img src="geis-logo.png" alt="Geis Logo" class="h-8 w-auto object-contain shrink-0" onerror="this.style.display='none'">
             <div class="leading-tight min-w-0">
                 <div class="flex items-center gap-2">
-                    <h1 class="text-xs font-black tracking-tight text-[#003366] uppercase truncate dark-mode-title">Geis Svozy</h1>
+                    <h1 class="text-xs font-black tracking-tight text-[#003366] uppercase truncate">Geis Svozy</h1>
                     <!-- Tlačítko přepínání tmavého vzhledu -->
                     <button onclick="toggleDarkMode()" class="text-gray-500 hover:text-[#003366] focus:outline-none" title="Přepnout tmavý/světlý režim">
                         <svg id="themeIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -181,7 +186,6 @@
                             <button onclick="quickAddCustomer('delivery')" class="text-xs text-[#003366] hover:underline font-black uppercase tracking-wider">+ Nový rozvoz</button>
                         </div>
                         <div class="flex gap-2">
-                            <!-- onChange okamžitě vloží položku a vyčistí se -->
                             <select id="trailerDeliverySelect" onchange="autoAddDraftCustomer('delivery', this)" class="w-full bg-white border border-gray-200 rounded-lg p-2 text-xs outline-none font-medium h-9 shadow-sm focus:border-[#003366]">
                                 <option value="" disabled selected>Vyberte rozvoz...</option>
                             </select>
@@ -196,7 +200,6 @@
                             <button onclick="quickAddCustomer('pickup')" class="text-xs text-[#003366] hover:underline font-black uppercase tracking-wider">+ Nový svoz</button>
                         </div>
                         <div class="flex gap-2">
-                            <!-- onChange okamžitě vloží položku a vyčistí se -->
                             <select id="trailerPickupSelect" onchange="autoAddDraftCustomer('pickup', this)" class="w-full bg-white border border-gray-200 rounded-lg p-2 text-xs outline-none font-medium h-9 shadow-sm focus:border-[#003366]">
                                 <option value="" disabled selected>Vyberte svoz...</option>
                             </select>
@@ -361,6 +364,21 @@
     </nav>
 
     <script>
+        // Vaše konfigurace databáze Firebase
+        const firebaseConfig = {
+          apiKey: "AIzaSyDFYGCL-G3cd-nd5OkqOgc5laK-MsYACVk",
+          authDomain: "geis---svozy.firebaseapp.com",
+          projectId: "geis---svozy",
+          storageBucket: "geis---svozy.firebasestorage.app",
+          messagingSenderId: "1046689241097",
+          appId: "1:1046689241097:web:d6c26bf38b58e1106480d8"
+        };
+
+        // Inicializace Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Výchozí hodnoty pro prvotní naplnění nové databáze
         const defaultCustomers = ["WIMEX","ALBI","DRANA","V-GARDEN","GARLAND","HP TRONIC","SHIPMALL","KRPA","TAMADEX","Z-TRADE","HOBRA ŠKOLNÍK","PENTA","FOMEI","SKOLIL KOMPOZIT","VETRO-PLUS","HR.PEKÁRNA","VOR","ITADECO","MEKR´S","SECO","COROLL","DETECHA","NUTRICIUS","KOMAP","ELPRIM","FANTON","TCM POINT","HORNBACH"];
         const defaultDrivers = ["KINDA","DVOŘÁK","PUTERKA","VRABEC","DOLEŽAL","KŘÍŽ","DUŽDA","VAŇÁTKO","DAVID","BAŽANT","KLEIN","PARTEL","SVYATYLO","HAVEL","KOCOUREK","DRAPÁK","RICHTER","BÁRTA"];
         const defaultInternalDrivers = ["BAŽANT", "KLEIN", "ŠPIČKA", "DOLEŽAL", "TĚŠÍNSKÝ", "VRABEC", "VAŇÁTKO"];
@@ -374,16 +392,12 @@
         let draftDeliveries = [];
         let draftPickups = [];
 
-        if (!localStorage.getItem('customersDelivery')) localStorage.setItem('customersDelivery', JSON.stringify(defaultCustomers));
-        if (!localStorage.getItem('customersPickup')) localStorage.setItem('customersPickup', JSON.stringify(defaultCustomers));
-        
-        if (!localStorage.getItem('drivers')) localStorage.setItem('drivers', JSON.stringify(defaultDrivers));
-        if (!localStorage.getItem('internalDrivers')) localStorage.setItem('internalDrivers', JSON.stringify(defaultInternalDrivers));
-        if (!localStorage.getItem('dailyTargets')) localStorage.setItem('dailyTargets', JSON.stringify([]));
-        if (!localStorage.getItem('pickups')) localStorage.setItem('pickups', JSON.stringify([]));
-        if (!localStorage.getItem('trailerPlans')) localStorage.setItem('trailerPlans', JSON.stringify([]));
+        // Reálná lokální paměť synchronizovaná s cloudem
+        let localDailyTargets = [];
+        let localPickups = [];
+        let localTrailerPlans = [];
 
-        // Inicializace a načtení tmavého režimu z localStorage
+        // Inicializace výchozího tmavého vzhledu
         if (localStorage.getItem('darkMode') === 'true') {
             document.body.classList.add('dark-mode');
             updateThemeIcon(true);
@@ -417,6 +431,7 @@
             if (!dateStr) return;
             activeDate = dateStr;
             updateDateUI();
+            populateAllDropdowns();
             renderCounterTab();
             renderTrailersTab();
         }
@@ -437,20 +452,78 @@
             setDate(getTodayStr());
         }
 
-        // Pomocník pro abecední seřazení pole s podporou české diakritiky
         function sortAlphabetically(array) {
             return [...array].sort((a, b) => a.localeCompare(b, 'cs'));
         }
+
+        // --- SYNCHRONIZACE S CLOUDEM (FIRESTORE) V REÁLNÉM ČASE ---
+
+        // Prvotní naplnění prázdné databáze výchozími daty
+        db.collection("settings").get().then((snapshot) => {
+            if (snapshot.empty) {
+                db.collection("settings").doc("customersDelivery").set({ list: defaultCustomers });
+                db.collection("settings").doc("customersPickup").set({ list: defaultCustomers });
+                db.collection("settings").doc("drivers").set({ list: defaultDrivers });
+                db.collection("settings").doc("internalDrivers").set({ list: defaultInternalDrivers });
+            }
+        });
+
+        // Naslouchání změnám v nastavení
+        db.collection("settings").onSnapshot((snapshot) => {
+            snapshot.forEach((doc) => {
+                localStorage.setItem(doc.id, JSON.stringify(doc.data().list || []));
+            });
+            renderSettingsTab();
+            populateAllDropdowns();
+        });
+
+        // Naslouchání změnám v cílech svozů
+        db.collection("dailyTargets").onSnapshot((snapshot) => {
+            localDailyTargets = [];
+            snapshot.forEach((doc) => {
+                localDailyTargets.push({ docId: doc.id, ...doc.data() });
+            });
+            localStorage.setItem('dailyTargets', JSON.stringify(localDailyTargets));
+            populateAllDropdowns();
+            renderCounterTab();
+        });
+
+        // Naslouchání změnám v historii nakládek
+        db.collection("pickups").onSnapshot((snapshot) => {
+            localPickups = [];
+            snapshot.forEach((doc) => {
+                localPickups.push({ docId: doc.id, ...doc.data() });
+            });
+            localStorage.setItem('pickups', JSON.stringify(localPickups));
+            renderCounterTab();
+            if (currentTargetId) renderModalContent();
+        });
+
+        // Naslouchání změnám v plánech návěsů
+        db.collection("trailerPlans").onSnapshot((snapshot) => {
+            localTrailerPlans = [];
+            snapshot.forEach((doc) => {
+                localTrailerPlans.push({ docId: doc.id, ...doc.data() });
+            });
+            localStorage.setItem('trailerPlans', JSON.stringify(localTrailerPlans));
+            renderTrailersTab();
+        });
+
+        // --- KONEC SYNCHRONIZACE ---
 
         function populateAllDropdowns() {
             const custPickup = sortAlphabetically(JSON.parse(localStorage.getItem('customersPickup')) || []);
             const custDelivery = sortAlphabetically(JSON.parse(localStorage.getItem('customersDelivery')) || []);
             const internalDrivers = sortAlphabetically(JSON.parse(localStorage.getItem('internalDrivers')) || []);
 
+            // Zamezení duplicitního přidání stejného zákazníka v jeden den
+            const activeCustomerNames = localDailyTargets.filter(t => t.date === activeDate).map(t => t.customer);
+            const availablePickupCustomers = custPickup.filter(c => !activeCustomerNames.includes(c));
+
             const targetCustomer = document.getElementById('targetCustomer');
             if (targetCustomer) {
                 targetCustomer.innerHTML = '<option value="" disabled selected>Vyberte zákazníka...</option>' + 
-                    custPickup.map(c => `<option value="${c}">${c}</option>`).join('');
+                    availablePickupCustomers.map(c => `<option value="${c}">${c}</option>`).join('');
             }
 
             const trailerDriverSelect = document.getElementById('trailerDriverSelect');
@@ -472,7 +545,6 @@
             }
         }
 
-        // Okamžité zařazení vybraného zákazníka bez nutnosti klikat na tlačítko +
         function autoAddDraftCustomer(type, selectEl) {
             const customer = selectEl.value;
             if (!customer) return;
@@ -487,8 +559,6 @@
                 }
             }
             renderDraftLists();
-            
-            // Vrátí výběr zpět na prázdný stav
             selectEl.selectedIndex = 0;
         }
 
@@ -506,15 +576,8 @@
             }
             list.push(formattedName);
             list.sort();
-            localStorage.setItem(key, JSON.stringify(list));
             
-            populateAllDropdowns();
-            renderSettingsTab();
-            renderTrailersTab();
-
-            const selectId = type === 'delivery' ? 'trailerDeliverySelect' : 'targetCustomer';
-            const selectEl = document.getElementById(selectId);
-            if (selectEl) selectEl.value = formattedName;
+            db.collection("settings").doc(key).set({ list: list });
         }
 
         function quickAddInternalDriver() {
@@ -530,14 +593,8 @@
             }
             list.push(formattedName);
             list.sort();
-            localStorage.setItem('internalDrivers', JSON.stringify(list));
             
-            populateAllDropdowns();
-            renderSettingsTab();
-            renderTrailersTab();
-
-            const selectEl = document.getElementById('trailerDriverSelect');
-            if (selectEl) selectEl.value = formattedName;
+            db.collection("settings").doc("internalDrivers").set({ list: list });
         }
 
         function createDailyTarget() {
@@ -549,20 +606,18 @@
             if (!customer) { alert('Vyberte prosím zákazníka ze seznamu!'); return; }
             if (fp === 0 && kh === 0) { alert('Zadejte cílové množství palet!'); return; }
 
-            let targets = JSON.parse(localStorage.getItem('dailyTargets'));
-            
-            if (targets.some(t => t.customer === customer && t.date === dateStr)) {
-                alert('Tento zákazník již má pro vybraný den aktivní cíl.');
-                return;
-            }
-
-            targets.push({ id: Date.now().toString(), date: dateStr, customer, targetFP: fp, targetKH: kh });
-            localStorage.setItem('dailyTargets', JSON.stringify(targets));
-            
-            document.getElementById('targetFP').value = '';
-            document.getElementById('targetKH').value = '';
-            document.getElementById('targetCustomer').value = '';
-            renderCounterTab();
+            const id = Date.now().toString();
+            db.collection("dailyTargets").doc(id).set({
+                id: id,
+                date: dateStr,
+                customer: customer.toUpperCase(),
+                targetFP: fp,
+                targetKH: kh
+            }).then(() => {
+                document.getElementById('targetFP').value = '';
+                document.getElementById('targetKH').value = '';
+                document.getElementById('targetCustomer').value = '';
+            });
         }
 
         function openDetails(targetId) {
@@ -584,11 +639,8 @@
         }
 
         function editTarget(targetId) {
-            let targets = JSON.parse(localStorage.getItem('dailyTargets')) || [];
-            const idx = targets.findIndex(item => item.id === targetId);
-            if (idx === -1) return;
-
-            const t = targets[idx];
+            const t = localDailyTargets.find(item => item.id === targetId);
+            if (!t) return;
             
             const noveFP = prompt(`Upravit cílové FP pro ${t.customer}:`, t.targetFP);
             if (noveFP === null) return;
@@ -596,48 +648,37 @@
             const noveKH = prompt(`Upravit cílové KH pro ${t.customer}:`, t.targetKH);
             if (noveKH === null) return;
 
-            targets[idx].targetFP = parseInt(noveFP) || 0;
-            targets[idx].targetKH = parseInt(noveKH) || 0;
-
-            localStorage.setItem('dailyTargets', JSON.stringify(targets));
-            
-            renderCounterTab();
-            renderModalContent();
+            db.collection("dailyTargets").doc(targetId).update({
+                targetFP: parseInt(noveFP) || 0,
+                targetKH: parseInt(noveKH) || 0
+            });
         }
 
         function deleteTarget(targetId) {
             if (confirm("Opravdu chcete tohoto zákazníka smazat z dnešního svozu? Smažou se i jeho dnes zadané nakládky.")) {
-                let targets = JSON.parse(localStorage.getItem('dailyTargets')) || [];
-                let pickups = JSON.parse(localStorage.getItem('pickups')) || [];
+                db.collection("dailyTargets").doc(targetId).delete();
                 
-                targets = targets.filter(t => t.id !== targetId);
-                pickups = pickups.filter(p => p.targetId !== targetId);
-                
-                localStorage.setItem('dailyTargets', JSON.stringify(targets));
-                localStorage.setItem('pickups', JSON.stringify(pickups));
-                
+                // Odstranění přiřazených nakládek
+                db.collection("pickups").where("targetId", "==", targetId).get().then((snapshot) => {
+                    snapshot.forEach((doc) => {
+                        doc.ref.delete();
+                    });
+                });
                 closeDetails();
-                populateAllDropdowns();
-                renderCounterTab();
             }
         }
 
         function deletePickup(pickupId) {
             if (confirm("Opravdu chcete stornovat tuto nakládku řidiče? Palety se vrátí zpět do stavu k odvozu.")) {
-                let pickups = JSON.parse(localStorage.getItem('pickups')) || [];
-                pickups = pickups.filter(p => p.id !== pickupId);
-                localStorage.setItem('pickups', JSON.stringify(pickups));
-                
-                renderCounterTab();
-                renderModalContent();
+                db.collection("pickups").doc(pickupId).delete();
             }
         }
 
         function renderModalContent() {
             if (!currentTargetId) return;
 
-            const targets = JSON.parse(localStorage.getItem('dailyTargets')) || [];
-            const pickups = JSON.parse(localStorage.getItem('pickups')) || [];
+            const targets = localDailyTargets;
+            const pickups = localPickups;
             const driversList = sortAlphabetically(JSON.parse(localStorage.getItem('drivers')) || []);
             
             const t = targets.find(item => item.id === currentTargetId);
@@ -689,7 +730,7 @@
 
             const formContainer = document.getElementById('modalFormContainer');
             if (!isDone) {
-                // Odstranění řidiče z nabídky, pokud již u tohoto zákazníka dnes odebíral
+                // Odstranění řidiče, pokud již u tohoto zákazníka dnes nakládal
                 const driversWithPickups = tPickups.map(p => p.driver);
                 const availableDrivers = driversList.filter(d => !driversWithPickups.includes(d));
 
@@ -750,23 +791,15 @@
 
             if (fp === 0 && kh === 0) { alert('Zadejte množství, které řidič skutečně naložil.'); return; }
 
-            let pickups = JSON.parse(localStorage.getItem('pickups')) || [];
-            pickups.push({
-                id: Date.now().toString(),
+            const id = Date.now().toString();
+            db.collection("pickups").doc(id).set({
+                id: id,
                 targetId: targetId,
                 driver: driver.toUpperCase(),
                 fp: fp,
                 kh: kh,
                 timestamp: new Date().toISOString()
             });
-            localStorage.setItem('pickups', JSON.stringify(pickups));
-            
-            if (navigator.vibrate) {
-                navigator.vibrate([100, 50, 100]);
-            }
-            
-            renderCounterTab();
-            renderModalContent();
         }
 
         function setGridFilter(filter) {
@@ -788,8 +821,8 @@
         }
 
         function renderCounterTab() {
-            const targets = JSON.parse(localStorage.getItem('dailyTargets')) || [];
-            const pickups = JSON.parse(localStorage.getItem('pickups')) || [];
+            const targets = localDailyTargets;
+            const pickups = localPickups;
             const container = document.getElementById('activeCountersList');
             if(!container) return;
             
@@ -856,7 +889,6 @@
                 const isDone = item.isDone;
                 const pct = item.progressPercent;
 
-                // Dynamická volba barvy podle splnění svozu (Červená -> Žlutá/Oranžová -> Zelená)
                 const barColorClass = pct >= 100 ? 'bg-emerald-500' : (pct >= 50 ? 'bg-amber-500' : 'bg-red-500');
 
                 let tileHtml = '';
@@ -885,7 +917,6 @@
                             </span>
                         </div>
                         
-                        <!-- Tenká integrovaná linka postupu trasy s dynamickou barvou -->
                         <div class="w-full bg-gray-150 h-1 rounded-full mt-1.5 overflow-hidden">
                             <div class="${barColorClass} h-1" style="width: ${pct}%"></div>
                         </div>
@@ -897,13 +928,12 @@
 
         // --- ZÁLOŽKA NÁVĚSY ---
         function editTrailerPlan(planId) {
-            const plans = JSON.parse(localStorage.getItem('trailerPlans')) || [];
+            const plans = localTrailerPlans;
             const p = plans.find(item => item.id === planId);
             if (!p) return;
 
             editingTrailerPlanId = p.id;
 
-            // Vyplnění formuláře původními daty
             document.getElementById('trailerDriverSelect').value = p.driver;
             document.getElementById('trailerSPZInput').value = p.spz === 'BEZ SPZ' ? '' : p.spz;
 
@@ -954,16 +984,15 @@
                 return;
             }
 
-            let plans = JSON.parse(localStorage.getItem('trailerPlans')) || [];
-            
             if (editingTrailerPlanId) {
-                const idx = plans.findIndex(p => p.id === editingTrailerPlanId);
-                if (idx !== -1) {
-                    plans[idx].driver = driver.toUpperCase();
-                    plans[idx].spz = spz || "BEZ SPZ";
-                    plans[idx].deliveries = [...draftDeliveries];
-                    plans[idx].pickups = [...draftPickups];
-                }
+                db.collection("trailerPlans").doc(editingTrailerPlanId).set({
+                    id: editingTrailerPlanId,
+                    date: activeDate,
+                    driver: driver.toUpperCase(),
+                    spz: spz || "BEZ SPZ",
+                    deliveries: [...draftDeliveries],
+                    pickups: [...draftPickups]
+                });
                 editingTrailerPlanId = null;
                 
                 const cancelBtn = document.getElementById('btnCancelTrailerEdit');
@@ -975,8 +1004,9 @@
                     saveBtn.className = "w-full bg-[#003366] hover:bg-slate-900 text-white font-bold py-2.5 rounded-lg text-sm transition-colors shadow-sm active:scale-[0.99] uppercase tracking-wider";
                 }
             } else {
-                plans.push({
-                    id: Date.now().toString(),
+                const id = Date.now().toString();
+                db.collection("trailerPlans").doc(id).set({
+                    id: id,
                     date: activeDate,
                     driver: driver.toUpperCase(),
                     spz: spz || "BEZ SPZ",
@@ -985,18 +1015,14 @@
                 });
             }
 
-            localStorage.setItem('trailerPlans', JSON.stringify(plans));
-            
             draftDeliveries = [];
             draftPickups = [];
             document.getElementById('trailerSPZInput').value = '';
             document.getElementById('trailerDriverSelect').selectedIndex = 0;
             renderDraftLists();
-            renderTrailersTab();
         }
 
         function renderTrailersTab() {
-            const plans = JSON.parse(localStorage.getItem('trailerPlans')) || [];
             const searchQuery = (document.getElementById('trailerDriverSearch')?.value || '').trim().toUpperCase();
 
             populateAllDropdowns();
@@ -1004,10 +1030,8 @@
             const plansList = document.getElementById('trailerPlansList');
             if (!plansList) return;
 
-            // Filtrování plánů na základě vybraného dne
-            let dayPlans = plans.filter(p => p.date === activeDate);
+            let dayPlans = localTrailerPlans.filter(p => p.date === activeDate);
 
-            // Vyhledávací funkce (podpora vyhledání podle Jména i SPZ)
             if (searchQuery) {
                 dayPlans = dayPlans.filter(p => 
                     p.driver.includes(searchQuery) || (p.spz && p.spz.includes(searchQuery))
@@ -1015,7 +1039,7 @@
             }
 
             if (dayPlans.length === 0) {
-                plansList.innerHTML = `<div class="col-span-1 text-sm text-gray-400 text-center py-6 bg-white rounded-xl border border-dashed border-gray-300 font-medium">Žádný návěs neodpovídá kritériím výběru.</div>`;
+                plansList.innerHTML = `<div class="col-span-1 text-sm text-gray-400 text-center py-6 bg-white rounded-xl border border-dashed border-gray-300 font-medium">Pro tento den není naplánován žádný návěs.</div>`;
                 return;
             }
 
@@ -1057,10 +1081,7 @@
         
         function deleteTrailerPlan(planId) {
             if (confirm("Opravdu chcete smazat tento plán návěsu?")) {
-                let plans = JSON.parse(localStorage.getItem('trailerPlans')) || [];
-                plans = plans.filter(p => p.id !== planId);
-                localStorage.setItem('trailerPlans', JSON.stringify(plans));
-                renderTrailersTab();
+                db.collection("trailerPlans").doc(planId).delete();
             }
         }
         // --- KONEC NÁVĚSŮ ---
@@ -1080,8 +1101,8 @@
                 document.getElementById('statsTitle').textContent = "Statistiky: Tento kalendářní měsíc";
             }
 
-            const pickups = JSON.parse(localStorage.getItem('pickups')) || [];
-            const targets = JSON.parse(localStorage.getItem('dailyTargets')) || [];
+            const pickups = localPickups;
+            const targets = localDailyTargets;
             const internalDrivers = JSON.parse(localStorage.getItem('internalDrivers')) || [];
             
             const now = new Date();
@@ -1264,18 +1285,15 @@
             
             list.push(value);
             list.sort();
-            localStorage.setItem(key, JSON.stringify(list));
+            
+            db.collection("settings").doc(key).set({ list: list });
             input.value = '';
-            renderSettingsTab();
-            renderTrailersTab();
         }
 
         function removeItem(key, index) {
             let list = JSON.parse(localStorage.getItem(key)) || [];
             list.splice(index, 1);
-            localStorage.setItem(key, JSON.stringify(list));
-            renderSettingsTab();
-            renderTrailersTab();
+            db.collection("settings").doc(key).set({ list: list });
         }
 
         function exportData() {
@@ -1311,25 +1329,6 @@
             reader.readAsText(file);
         }
 
-        // Přepínač tmavého / světlého režimu
-        function toggleDarkMode() {
-            const isDark = document.body.classList.toggle('dark-mode');
-            localStorage.setItem('darkMode', isDark);
-            updateThemeIcon(isDark);
-        }
-
-        function updateThemeIcon(isDark) {
-            const themeIcon = document.getElementById('themeIcon');
-            if (!themeIcon) return;
-            if (isDark) {
-                // Ikona Slunce (pro návrat do světlého režimu)
-                themeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path>`;
-            } else {
-                // Ikona Měsíc (pro návrat do tmavého režimu)
-                themeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>`;
-            }
-        }
-
         function switchTab(tabId, event) {
             if (editingTrailerPlanId) {
                 cancelTrailerEdit();
@@ -1352,15 +1351,15 @@
                 document.getElementById(`tab-${tabId}`).className = 'active-tab p-4 space-y-4';
             }
             
-            const btns = document.querySelectorAll('nav button');
+            const btns = document.querySelectorAll('nav b');
             btns.forEach(b => { b.classList.remove('text-[#003366]'); b.classList.add('text-gray-400'); });
             
-            if (event && event.currentTarget) {
-                event.currentTarget.classList.remove('text-gray-400');
-                event.currentTarget.classList.add('text-[#003366]');
-            } else {
-                document.getElementById(`nav-${tabId}`).classList.remove('text-gray-400');
-                document.getElementById(`nav-${tabId}`).classList.add('text-[#003366]');
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            if (activeBtn) {
+                const siblings = activeBtn.parentNode.querySelectorAll('button');
+                siblings.forEach(s => { s.classList.remove('text-[#003366]'); s.classList.add('text-gray-400'); });
+                activeBtn.classList.remove('text-gray-400');
+                activeBtn.classList.add('text-[#003366]');
             }
 
             if(tabId === 'counter') renderCounterTab();
@@ -1368,20 +1367,6 @@
             if(tabId === 'stats') renderStats('week');
             if(tabId === 'settings') renderSettingsTab();
         }
-
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Service Worker registrován.'))
-                    .catch(err => console.warn('Registrace SW selhala:', err));
-            });
-        }
-
-        // Prvotní nastavení při spuštění
-        updateDateUI();
-        renderSettingsTab();
-        renderCounterTab();
-        renderTrailersTab();
     </script>
 </body>
 </html>
