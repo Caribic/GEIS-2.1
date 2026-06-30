@@ -20,27 +20,78 @@
             -webkit-tap-highlight-color: transparent;
             padding-top: env(safe-area-inset-top, 0px);
             padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+            transition: background-color 0.2s, color 0.2s;
         }
         .pb-safe {
             padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
         }
-        /* Vlastní barvy Geis */
-        .bg-geis-blue { background-color: #003366; }
+        
+        /* Globální barvy Geis */
         .text-geis-blue { color: #003366; }
+        .bg-geis-blue { background-color: #003366; }
         .border-geis-blue { border-color: #003366; }
-        .text-geis-red { color: #e30613; }
-        .bg-geis-red { background-color: #e30613; }
+
+        /* Tmavý režim - vlastní úpravy pro plnou kompatibilitu */
+        body.dark-mode {
+            background-color: #121212;
+            color: #f3f4f6;
+        }
+        body.dark-mode header,
+        body.dark-mode nav,
+        body.dark-mode .bg-white {
+            background-color: #1e293b;
+            color: #f1f5f9;
+            border-color: #334155;
+        }
+        body.dark-mode .bg-gray-50,
+        body.dark-mode .bg-slate-50 {
+            background-color: #334155;
+            color: #f1f5f9;
+            border-color: #475569;
+        }
+        body.dark-mode input,
+        body.dark-mode select {
+            background-color: #1e293b;
+            color: #f1f5f9;
+            border-color: #475569;
+        }
+        body.dark-mode .text-slate-800,
+        body.dark-mode .text-slate-700 {
+            color: #e2e8f0;
+        }
+        body.dark-mode .border-gray-200,
+        body.dark-mode .border-gray-100 {
+            border-color: #334155;
+        }
+        body.dark-mode #globalDateBar {
+            background-color: #1e293b;
+            border-color: #334155;
+        }
+        body.dark-mode .bg-white select {
+            background-color: #334155;
+        }
+        body.dark-mode .bg-[#e6f0fa] {
+            background-color: #1e3a5f;
+            color: #e2e8f0;
+        }
     </style>
 </head>
 <body class="bg-gray-100 font-sans antialiased text-gray-900">
 
-    <!-- Záhlaví s integrovaným kompaktním kalendářem -->
+    <!-- Záhlaví s kalendářem a přepínačem tmavého režimu -->
     <header class="bg-white text-slate-900 p-3 shadow-md sticky top-0 z-20 border-b-4 border-[#003366] flex justify-between items-center gap-2">
         <div class="flex items-center gap-2.5 min-w-0">
             <img src="geis-logo.png" alt="Geis Logo" class="h-8 w-auto object-contain shrink-0" onerror="this.style.display='none'">
             <div class="leading-tight min-w-0">
-                <h1 class="text-xs font-black tracking-tight text-[#003366] uppercase truncate">Geis Svozy</h1>
-                <!-- Kliknutím na datum skočí zpět na dnešní den -->
+                <div class="flex items-center gap-2">
+                    <h1 class="text-xs font-black tracking-tight text-[#003366] uppercase truncate dark-mode-title">Geis Svozy</h1>
+                    <!-- Tlačítko přepínání tmavého vzhledu -->
+                    <button onclick="toggleDarkMode()" class="text-gray-500 hover:text-[#003366] focus:outline-none" title="Přepnout tmavý/světlý režim">
+                        <svg id="themeIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                        </svg>
+                    </button>
+                </div>
                 <p class="text-[9px] text-slate-500 font-bold uppercase tracking-wider truncate cursor-pointer hover:text-[#003366] active:scale-95 transition-transform" 
                    id="currentDateDisplay" onclick="jumpToToday()" title="Skočit na dnešek"></p>
             </div>
@@ -96,7 +147,6 @@
                 </div>
             </div>
             
-            <!-- Hustější mřížka dlaždic -->
             <div id="activeCountersList" class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             </div>
         </div>
@@ -126,32 +176,32 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <!-- Rozvoz -->
                     <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                        <div class="flex justify-between items-center mb-1">
+                        <div class="flex justify-between items-center mb-1.5">
                             <label class="text-[11px] font-semibold text-blue-700 uppercase">Rozvoz se zbožím</label>
-                            <button onclick="quickAddCustomer('delivery')" class="text-[10px] text-[#003366] hover:underline font-bold">+ Nový rozvozce</button>
+                            <button onclick="quickAddCustomer('delivery')" class="text-xs text-[#003366] hover:underline font-black uppercase tracking-wider">+ Nový rozvoz</button>
                         </div>
                         <div class="flex gap-2">
-                            <select id="trailerDeliverySelect" class="flex-1 bg-white border border-gray-200 rounded-lg p-2 text-xs outline-none font-medium h-9 shadow-sm focus:border-[#003366]">
+                            <!-- onChange okamžitě vloží položku a vyčistí se -->
+                            <select id="trailerDeliverySelect" onchange="autoAddDraftCustomer('delivery', this)" class="w-full bg-white border border-gray-200 rounded-lg p-2 text-xs outline-none font-medium h-9 shadow-sm focus:border-[#003366]">
                                 <option value="" disabled selected>Vyberte rozvoz...</option>
                             </select>
-                            <button onclick="addDraftCustomer('delivery')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 rounded-lg text-xs transition-colors">Přidat</button>
                         </div>
-                        <div id="draftDeliveriesList" class="flex flex-wrap gap-1.5 mt-2"></div>
+                        <div id="draftDeliveriesList" class="flex flex-wrap gap-1.5 mt-2.5"></div>
                     </div>
 
                     <!-- Svoz -->
                     <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                        <div class="flex justify-between items-center mb-1">
+                        <div class="flex justify-between items-center mb-1.5">
                             <label class="text-[11px] font-semibold text-emerald-700 uppercase">Svoz prázdných / palet</label>
-                            <button onclick="quickAddCustomer('pickup')" class="text-[10px] text-[#003366] hover:underline font-bold">+ Nový svozce</button>
+                            <button onclick="quickAddCustomer('pickup')" class="text-xs text-[#003366] hover:underline font-black uppercase tracking-wider">+ Nový svoz</button>
                         </div>
                         <div class="flex gap-2">
-                            <select id="trailerPickupSelect" class="flex-1 bg-white border border-gray-200 rounded-lg p-2 text-xs outline-none font-medium h-9 shadow-sm focus:border-[#003366]">
+                            <!-- onChange okamžitě vloží položku a vyčistí se -->
+                            <select id="trailerPickupSelect" onchange="autoAddDraftCustomer('pickup', this)" class="w-full bg-white border border-gray-200 rounded-lg p-2 text-xs outline-none font-medium h-9 shadow-sm focus:border-[#003366]">
                                 <option value="" disabled selected>Vyberte svoz...</option>
                             </select>
-                            <button onclick="addDraftCustomer('pickup')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 rounded-lg text-xs transition-colors">Přidat</button>
                         </div>
-                        <div id="draftPickupsList" class="flex flex-wrap gap-1.5 mt-2"></div>
+                        <div id="draftPickupsList" class="flex flex-wrap gap-1.5 mt-2.5"></div>
                     </div>
                 </div>
 
@@ -163,8 +213,14 @@
             </div>
         </div>
 
+        <!-- Rychlé vyhledávání řidiče v plánech návěsů -->
+        <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+            <label class="text-xs font-black text-gray-400 uppercase tracking-wider">Vyhledat řidiče / SPZ</label>
+            <input type="text" id="trailerDriverSearch" oninput="renderTrailersTab()" placeholder="Napište jméno nebo SPZ pro filtraci..." class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 mt-1 text-sm font-bold outline-none focus:border-[#003366] uppercase">
+        </div>
+
         <div>
-            <h3 class="font-bold text-[#002f6c] text-xs uppercase tracking-wider mb-3">Denní plán nasazení návěsů</h3>
+            <h3 class="font-bold text-[#003366] text-xs uppercase tracking-wider mb-3">Denní plán nasazení návěsů</h3>
             <div id="trailerPlansList" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
         </div>
     </main>
@@ -172,12 +228,12 @@
     <!-- Modální okno nakládky -->
     <div id="detailsModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-xl flex flex-col max-h-[90vh] border border-gray-200">
-            <div class="bg-[#003366] p-4 text-white flex justify-between items-start border-b-4 border-[#96c11f]">
+            <div class="bg-[#003366] p-4 text-white flex justify-between items-start border-b-4 border-[#002244]">
                 <div>
                     <div id="modalCustomerName" class="text-xl font-black leading-tight uppercase text-white">---</div>
                     <p id="modalTargetInfo" class="text-xs text-slate-200 mt-0.5 font-medium">---</p>
                 </div>
-                <button onclick="closeDetails()" class="bg-[#001f47] hover:bg-[#001530] text-white rounded-full p-1.5 text-xs font-bold w-7 h-7 flex items-center justify-center transition-colors">✕</button>
+                <button onclick="closeDetails()" class="bg-[#002244] hover:bg-[#001530] text-white rounded-full p-1.5 text-xs font-bold w-7 h-7 flex items-center justify-center transition-colors">✕</button>
             </div>
             
             <div class="p-4 space-y-4 overflow-y-auto flex-1">
@@ -296,9 +352,8 @@
             <span class="text-[10px] mt-1 font-bold tracking-wide uppercase">Statistiky</span>
         </button>
         <button id="nav-settings" onclick="switchTab('settings', event)" class="text-gray-400 flex flex-col items-center transition-colors">
-            <!-- Opravená a kompletně uzavřená ikona ozubeného kolečka -->
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065"></path>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
             </svg>
             <span class="text-[10px] mt-1 font-bold tracking-wide uppercase">Nastavení</span>
@@ -308,21 +363,17 @@
     <script>
         const defaultCustomers = ["WIMEX","ALBI","DRANA","V-GARDEN","GARLAND","HP TRONIC","SHIPMALL","KRPA","TAMADEX","Z-TRADE","HOBRA ŠKOLNÍK","PENTA","FOMEI","SKOLIL KOMPOZIT","VETRO-PLUS","HR.PEKÁRNA","VOR","ITADECO","MEKR´S","SECO","COROLL","DETECHA","NUTRICIUS","KOMAP","ELPRIM","FANTON","TCM POINT","HORNBACH"];
         const defaultDrivers = ["KINDA","DVOŘÁK","PUTERKA","VRABEC","DOLEŽAL","KŘÍŽ","DUŽDA","VAŇÁTKO","DAVID","BAŽANT","KLEIN","PARTEL","SVYATYLO","HAVEL","KOCOUREK","DRAPÁK","RICHTER","BÁRTA"];
-        // Firemní řidiči pro 33 EUR návěsy
         const defaultInternalDrivers = ["BAŽANT", "KLEIN", "ŠPIČKA", "DOLEŽAL", "TĚŠÍNSKÝ", "VRABEC", "VAŇÁTKO"];
 
         let currentTargetId = null;
         let currentGridFilter = 'all'; 
         let currentStatsPeriod = 'week';
         
-        // Identifikátor právě editovaného plánu návěsu
         let editingTrailerPlanId = null;
 
-        // Dočasná pole pro návrh rozvozů a svozů návěsu
         let draftDeliveries = [];
         let draftPickups = [];
 
-        // Inicializace rozdělených zákazníků (Rozvoz vs Svoz)
         if (!localStorage.getItem('customersDelivery')) localStorage.setItem('customersDelivery', JSON.stringify(defaultCustomers));
         if (!localStorage.getItem('customersPickup')) localStorage.setItem('customersPickup', JSON.stringify(defaultCustomers));
         
@@ -332,6 +383,12 @@
         if (!localStorage.getItem('pickups')) localStorage.setItem('pickups', JSON.stringify([]));
         if (!localStorage.getItem('trailerPlans')) localStorage.setItem('trailerPlans', JSON.stringify([]));
 
+        // Inicializace a načtení tmavého režimu z localStorage
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            updateThemeIcon(true);
+        }
+
         const getTodayStr = () => {
             const d = new Date();
             const year = d.getFullYear();
@@ -340,7 +397,6 @@
             return `${year}-${month}-${day}`;
         };
 
-        // Aktivní globální datum (výchozí dnešek)
         let activeDate = getTodayStr();
 
         function formatDateToCzech(dateStr) {
@@ -361,9 +417,6 @@
             if (!dateStr) return;
             activeDate = dateStr;
             updateDateUI();
-            
-            // Překreslení aktivní záložky k novému datu
-            populateAllDropdowns();
             renderCounterTab();
             renderTrailersTab();
         }
@@ -384,41 +437,34 @@
             setDate(getTodayStr());
         }
 
-        // Naplnění všech rozbalovacích nabídek zákazníků a řidičů
+        // Pomocník pro abecední seřazení pole s podporou české diakritiky
+        function sortAlphabetically(array) {
+            return [...array].sort((a, b) => a.localeCompare(b, 'cs'));
+        }
+
         function populateAllDropdowns() {
-            const custPickup = JSON.parse(localStorage.getItem('customersPickup')) || [];
-            const custDelivery = JSON.parse(localStorage.getItem('customersDelivery')) || [];
-            const internalDrivers = JSON.parse(localStorage.getItem('internalDrivers')) || [];
+            const custPickup = sortAlphabetically(JSON.parse(localStorage.getItem('customersPickup')) || []);
+            const custDelivery = sortAlphabetically(JSON.parse(localStorage.getItem('customersDelivery')) || []);
+            const internalDrivers = sortAlphabetically(JSON.parse(localStorage.getItem('internalDrivers')) || []);
 
-            // Načtení aktivních cílů pro aktuální den
-            const targets = JSON.parse(localStorage.getItem('dailyTargets')) || [];
-            const activeCustomerNames = targets.filter(t => t.date === activeDate).map(t => t.customer);
-
-            // Odfiltrování zákazníků, kteří již mají pro daný den zadaný cíl svozu
-            const availablePickupCustomers = custPickup.filter(c => !activeCustomerNames.includes(c));
-
-            // 1. targetCustomer (Mřížka - pouze dosud nezadaní zákazníci)
             const targetCustomer = document.getElementById('targetCustomer');
             if (targetCustomer) {
                 targetCustomer.innerHTML = '<option value="" disabled selected>Vyberte zákazníka...</option>' + 
-                    availablePickupCustomers.map(c => `<option value="${c}">${c}</option>`).join('');
+                    custPickup.map(c => `<option value="${c}">${c}</option>`).join('');
             }
 
-            // 2. trailerDriverSelect (Návěsy - firemní řidiči)
             const trailerDriverSelect = document.getElementById('trailerDriverSelect');
             if (trailerDriverSelect) {
                 trailerDriverSelect.innerHTML = '<option value="" disabled selected>Vyberte řidiče...</option>' +
                     internalDrivers.map(d => `<option value="${d}">${d}</option>`).join('');
             }
 
-            // 3. trailerDeliverySelect (Návěsy - rozvozy)
             const trailerDeliverySelect = document.getElementById('trailerDeliverySelect');
             if (trailerDeliverySelect) {
                 trailerDeliverySelect.innerHTML = '<option value="" disabled selected>Vyberte rozvoz...</option>' +
                     custDelivery.map(c => `<option value="${c}">${c}</option>`).join('');
             }
 
-            // 4. trailerPickupSelect (Návěsy - svozy)
             const trailerPickupSelect = document.getElementById('trailerPickupSelect');
             if (trailerPickupSelect) {
                 trailerPickupSelect.innerHTML = '<option value="" disabled selected>Vyberte svoz...</option>' +
@@ -426,7 +472,26 @@
             }
         }
 
-        // Rychlé přidání řidiče nebo zákazníka přímo z rozbalovacích lišt
+        // Okamžité zařazení vybraného zákazníka bez nutnosti klikat na tlačítko +
+        function autoAddDraftCustomer(type, selectEl) {
+            const customer = selectEl.value;
+            if (!customer) return;
+
+            if (type === 'delivery') {
+                if (!draftDeliveries.includes(customer)) {
+                    draftDeliveries.push(customer);
+                }
+            } else {
+                if (!draftPickups.includes(customer)) {
+                    draftPickups.push(customer);
+                }
+            }
+            renderDraftLists();
+            
+            // Vrátí výběr zpět na prázdný stav
+            selectEl.selectedIndex = 0;
+        }
+
         function quickAddCustomer(type) {
             const name = prompt("Zadejte název nového zákazníka:");
             if (!name) return;
@@ -447,7 +512,6 @@
             renderSettingsTab();
             renderTrailersTab();
 
-            // Předvolení nově přidaného zákazníka
             const selectId = type === 'delivery' ? 'trailerDeliverySelect' : 'targetCustomer';
             const selectEl = document.getElementById(selectId);
             if (selectEl) selectEl.value = formattedName;
@@ -497,9 +561,7 @@
             
             document.getElementById('targetFP').value = '';
             document.getElementById('targetKH').value = '';
-            
-            // Znovu naplní dropdown (odebere nově přidaného ze seznamu)
-            populateAllDropdowns();
+            document.getElementById('targetCustomer').value = '';
             renderCounterTab();
         }
 
@@ -555,7 +617,7 @@
                 localStorage.setItem('pickups', JSON.stringify(pickups));
                 
                 closeDetails();
-                populateAllDropdowns(); // Zákazník se vrátí do nabídky
+                populateAllDropdowns();
                 renderCounterTab();
             }
         }
@@ -576,7 +638,7 @@
 
             const targets = JSON.parse(localStorage.getItem('dailyTargets')) || [];
             const pickups = JSON.parse(localStorage.getItem('pickups')) || [];
-            const driversList = JSON.parse(localStorage.getItem('drivers')) || [];
+            const driversList = sortAlphabetically(JSON.parse(localStorage.getItem('drivers')) || []);
             
             const t = targets.find(item => item.id === currentTargetId);
             if (!t) { closeDetails(); return; }
@@ -627,25 +689,37 @@
 
             const formContainer = document.getElementById('modalFormContainer');
             if (!isDone) {
-                let driverOptions = driversList.map(d => `<option value="${d}">${d}</option>`).join('');
-                formContainer.innerHTML = `
-                    <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-200 shadow-inner">
-                        <p class="text-[10px] font-bold text-[#003366] uppercase tracking-wider mb-2">Zapsat nakládku řidiče</p>
-                        <div class="grid grid-cols-3 gap-2 mb-3">
-                            <div class="col-span-1">
-                                <select id="modalDriverSelect" class="w-full bg-white border border-gray-300 rounded-lg p-2 text-xs font-bold text-slate-700 outline-none h-10 shadow-sm focus:border-[#003366]">${driverOptions}</select>
+                // Odstranění řidiče z nabídky, pokud již u tohoto zákazníka dnes odebíral
+                const driversWithPickups = tPickups.map(p => p.driver);
+                const availableDrivers = driversList.filter(d => !driversWithPickups.includes(d));
+
+                let driverOptions = availableDrivers.map(d => `<option value="${d}">${d}</option>`).join('');
+                
+                if (availableDrivers.length > 0) {
+                    formContainer.innerHTML = `
+                        <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-200 shadow-inner">
+                            <p class="text-[10px] font-bold text-[#003366] uppercase tracking-wider mb-2">Zapsat nakládku řidiče</p>
+                            <div class="grid grid-cols-3 gap-2 mb-3">
+                                <div class="col-span-1">
+                                    <select id="modalDriverSelect" class="w-full bg-white border border-gray-300 rounded-lg p-2 text-xs font-bold text-slate-700 outline-none h-10 shadow-sm focus:border-[#003366]">${driverOptions}</select>
+                                </div>
+                                <div>
+                                    <input type="number" id="modalPickupFP" placeholder="FP (0)" min="0" class="w-full bg-white border border-gray-300 rounded-lg p-2 text-xs text-center font-bold text-slate-800 h-10 shadow-sm focus:border-[#003366]" onfocus="this.select()">
+                                </div>
+                                <div>
+                                    <input type="number" id="modalPickupKH" placeholder="KH (0)" min="0" class="w-full bg-white border border-gray-300 rounded-lg p-2 text-xs text-center font-bold text-slate-800 h-10 shadow-sm focus:border-[#003366]" onfocus="this.select()">
+                                </div>
                             </div>
-                            <div>
-                                <input type="number" id="modalPickupFP" placeholder="FP (0)" min="0" class="w-full bg-white border border-gray-300 rounded-lg p-2 text-xs text-center font-bold text-slate-800 h-10 shadow-sm focus:border-[#003366]" onfocus="this.select()">
-                            </div>
-                            <div>
-                                <input type="number" id="modalPickupKH" placeholder="KH (0)" min="0" class="w-full bg-white border border-gray-300 rounded-lg p-2 text-xs text-center font-bold text-slate-800 h-10 shadow-sm focus:border-[#003366]" onfocus="this.select()">
-                            </div>
-                        </div>
-                        <button onclick="saveModalPickup('${t.id}')" class="w-full bg-[#003366] hover:bg-slate-900 text-white text-xs font-bold py-2.5 rounded-lg active:scale-[0.99] transition-transform shadow-sm uppercase tracking-wider">
-                            Potvrdit naložení a odečíst
-                        </button>
-                    </div>`;
+                            <button onclick="saveModalPickup('${t.id}')" class="w-full bg-[#003366] hover:bg-slate-900 text-white text-xs font-bold py-2.5 rounded-lg active:scale-[0.99] transition-transform shadow-sm uppercase tracking-wider">
+                                Potvrdit naložení a odečíst
+                            </button>
+                        </div>`;
+                } else {
+                    formContainer.innerHTML = `
+                        <div class="bg-amber-50 border border-amber-300 p-3.5 rounded-xl text-center text-xs text-amber-800 font-medium">
+                            Všichni dostupní smluvní řidiči již u tohoto zákazníka dnes nakládali.
+                        </div>`;
+                }
             } else {
                 formContainer.innerHTML = `
                     <div class="bg-[#e6f0fa] border border-[#003366] p-4 rounded-xl text-center shadow-sm">
@@ -680,7 +754,7 @@
             pickups.push({
                 id: Date.now().toString(),
                 targetId: targetId,
-                driver: driver,
+                driver: driver.toUpperCase(),
                 fp: fp,
                 kh: kh,
                 timestamp: new Date().toISOString()
@@ -782,9 +856,11 @@
                 const isDone = item.isDone;
                 const pct = item.progressPercent;
 
+                // Dynamická volba barvy podle splnění svozu (Červená -> Žlutá/Oranžová -> Zelená)
+                const barColorClass = pct >= 100 ? 'bg-emerald-500' : (pct >= 50 ? 'bg-amber-500' : 'bg-red-500');
+
                 let tileHtml = '';
                 if (isDone) {
-                    // Kompaktní splněný svoz (72px výška)
                     tileHtml = `
                     <div onclick="openDetails('${t.id}')" class="bg-[#e6f0fa] border-l-[3px] border-[#003366] border-y border-r border-gray-200 rounded-lg p-2 shadow-sm active:scale-95 transition-all cursor-pointer flex flex-col justify-between h-[72px]">
                         <div class="font-bold text-[#003366] text-xs truncate flex justify-between items-center">
@@ -796,7 +872,6 @@
                         </div>
                     </div>`;
                 } else {
-                    // Kompaktní čekající svoz (72px výška)
                     tileHtml = `
                     <div onclick="openDetails('${t.id}')" class="bg-white border-l-[3px] border-[#003366] border-y border-r border-gray-200 rounded-lg p-2 shadow-sm hover:border-[#003366] active:scale-95 transition-all cursor-pointer flex flex-col justify-between h-[72px]">
                         <div class="font-bold text-slate-800 text-xs truncate" title="${t.customer}">${t.customer}</div>
@@ -810,9 +885,9 @@
                             </span>
                         </div>
                         
-                        <!-- Tenká integrovaná linka postupu trasy -->
+                        <!-- Tenká integrovaná linka postupu trasy s dynamickou barvou -->
                         <div class="w-full bg-gray-150 h-1 rounded-full mt-1.5 overflow-hidden">
-                            <div class="bg-[#003366] h-1" style="width: ${pct}%"></div>
+                            <div class="${barColorClass} h-1" style="width: ${pct}%"></div>
                         </div>
                     </div>`;
                 }
@@ -821,50 +896,6 @@
         }
 
         // --- ZÁLOŽKA NÁVĚSY ---
-        function addDraftCustomer(type) {
-            const selectId = type === 'delivery' ? 'trailerDeliverySelect' : 'trailerPickupSelect';
-            const customer = document.getElementById(selectId).value;
-            if (!customer) return;
-
-            if (type === 'delivery') {
-                if (!draftDeliveries.includes(customer)) {
-                    draftDeliveries.push(customer);
-                }
-            } else {
-                if (!draftPickups.includes(customer)) {
-                    draftPickups.push(customer);
-                }
-            }
-            renderDraftLists();
-        }
-
-        function removeDraftCustomer(type, index) {
-            if (type === 'delivery') {
-                draftDeliveries.splice(index, 1);
-            } else {
-                draftPickups.splice(index, 1);
-            }
-            renderDraftLists();
-        }
-
-        function renderDraftLists() {
-            const delContainer = document.getElementById('draftDeliveriesList');
-            delContainer.innerHTML = draftDeliveries.map((c, idx) => `
-                <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-lg border border-blue-200 shadow-sm">
-                    ${c}
-                    <button onclick="removeDraftCustomer('delivery', ${idx})" class="text-blue-500 hover:text-blue-950 font-bold ml-1 active:scale-90">✕</button>
-                </span>
-            `).join('');
-
-            const pickContainer = document.getElementById('draftPickupsList');
-            pickContainer.innerHTML = draftPickups.map((c, idx) => `
-                <span class="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-semibold px-2.5 py-1 rounded-lg border border-green-200 shadow-sm">
-                    ${c}
-                    <button onclick="removeDraftCustomer('pickup', ${idx})" class="text-green-500 hover:text-green-950 font-bold ml-1 active:scale-90">✕</button>
-                </span>
-            `).join('');
-        }
-
         function editTrailerPlan(planId) {
             const plans = JSON.parse(localStorage.getItem('trailerPlans')) || [];
             const p = plans.find(item => item.id === planId);
@@ -876,26 +907,22 @@
             document.getElementById('trailerDriverSelect').value = p.driver;
             document.getElementById('trailerSPZInput').value = p.spz === 'BEZ SPZ' ? '' : p.spz;
 
-            // Načtení dočasných rozvozů a svozů
             draftDeliveries = [...p.deliveries];
             draftPickups = [...p.pickups];
             renderDraftLists();
 
-            // Změna tlačítka formuláře na stav editace
             const saveBtn = document.getElementById('btnSaveTrailerPlan');
             if (saveBtn) {
                 saveBtn.innerHTML = 'Uložit změny plánu návěsu';
                 saveBtn.className = "w-full bg-blue-600 hover:bg-blue-800 text-white font-bold py-2.5 rounded-lg text-sm transition-colors shadow-sm active:scale-[0.99] uppercase tracking-wider";
             }
 
-            // Přidání pomocného tlačítka pro zrušení editace
             let cancelBtn = document.getElementById('btnCancelTrailerEdit');
             if (!cancelBtn) {
                 const cancelHtml = `<button id="btnCancelTrailerEdit" onclick="cancelTrailerEdit()" class="w-full mt-2 bg-gray-200 hover:bg-gray-300 text-slate-700 font-bold py-2 rounded-lg text-xs transition-colors uppercase tracking-wider">Zrušit editaci</button>`;
                 document.getElementById('btnSaveTrailerPlan').insertAdjacentHTML('afterend', cancelHtml);
             }
 
-            // Plynulý posun nahoru k formuláři
             document.getElementById('tab-trailers').scrollIntoView({ behavior: 'smooth' });
         }
 
@@ -930,10 +957,9 @@
             let plans = JSON.parse(localStorage.getItem('trailerPlans')) || [];
             
             if (editingTrailerPlanId) {
-                // Úprava stávajícího plánu návěsu
                 const idx = plans.findIndex(p => p.id === editingTrailerPlanId);
                 if (idx !== -1) {
-                    plans[idx].driver = driver;
+                    plans[idx].driver = driver.toUpperCase();
                     plans[idx].spz = spz || "BEZ SPZ";
                     plans[idx].deliveries = [...draftDeliveries];
                     plans[idx].pickups = [...draftPickups];
@@ -952,7 +978,7 @@
                 plans.push({
                     id: Date.now().toString(),
                     date: activeDate,
-                    driver: driver,
+                    driver: driver.toUpperCase(),
                     spz: spz || "BEZ SPZ",
                     deliveries: [...draftDeliveries],
                     pickups: [...draftPickups]
@@ -961,7 +987,6 @@
 
             localStorage.setItem('trailerPlans', JSON.stringify(plans));
             
-            // Vymazání formuláře a překreslení tabu
             draftDeliveries = [];
             draftPickups = [];
             document.getElementById('trailerSPZInput').value = '';
@@ -972,17 +997,25 @@
 
         function renderTrailersTab() {
             const plans = JSON.parse(localStorage.getItem('trailerPlans')) || [];
+            const searchQuery = (document.getElementById('trailerDriverSearch')?.value || '').trim().toUpperCase();
 
-            // Naplnění dropdownů k aktuálnímu stavu
             populateAllDropdowns();
 
-            // Vypsání plánů pro aktivní den
             const plansList = document.getElementById('trailerPlansList');
             if (!plansList) return;
 
-            const dayPlans = plans.filter(p => p.date === activeDate);
+            // Filtrování plánů na základě vybraného dne
+            let dayPlans = plans.filter(p => p.date === activeDate);
+
+            // Vyhledávací funkce (podpora vyhledání podle Jména i SPZ)
+            if (searchQuery) {
+                dayPlans = dayPlans.filter(p => 
+                    p.driver.includes(searchQuery) || (p.spz && p.spz.includes(searchQuery))
+                );
+            }
+
             if (dayPlans.length === 0) {
-                plansList.innerHTML = `<div class="col-span-1 text-sm text-gray-400 text-center py-6 bg-white rounded-xl border border-dashed border-gray-300 font-medium">Pro tento den není naplánován žádný návěs.</div>`;
+                plansList.innerHTML = `<div class="col-span-1 text-sm text-gray-400 text-center py-6 bg-white rounded-xl border border-dashed border-gray-300 font-medium">Žádný návěs neodpovídá kritériím výběru.</div>`;
                 return;
             }
 
@@ -1067,7 +1100,6 @@
                 filteredPickups = pickups.filter(p => new Date(p.timestamp) >= firstDayOfMonth);
             }
 
-            // Rozdělení svozů na Návěsy a Jiná vozidla
             let trailerPickups = [];
             let otherPickups = [];
 
@@ -1079,7 +1111,6 @@
                 }
             });
 
-            // Seskupovací funkce
             function aggregateStats(pickupList) {
                 let customerStats = {};
                 let driverStats = {};
@@ -1105,7 +1136,6 @@
             const trailerAgg = aggregateStats(trailerPickups);
             const otherAgg = aggregateStats(otherPickups);
 
-            // Generování HTML sekce
             function makeStatsSectionHTML(title, iconSVG, statsData) {
                 let html = `
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 space-y-4">
@@ -1176,10 +1206,10 @@
         }
 
         function renderSettingsTab() {
-            const custDelivery = JSON.parse(localStorage.getItem('customersDelivery')) || [];
-            const custPickup = JSON.parse(localStorage.getItem('customersPickup')) || [];
-            const drvs = JSON.parse(localStorage.getItem('drivers')) || [];
-            const internalDrivers = JSON.parse(localStorage.getItem('internalDrivers')) || [];
+            const custDelivery = sortAlphabetically(JSON.parse(localStorage.getItem('customersDelivery')) || []);
+            const custPickup = sortAlphabetically(JSON.parse(localStorage.getItem('customersPickup')) || []);
+            const drvs = sortAlphabetically(JSON.parse(localStorage.getItem('drivers')) || []);
+            const internalDrivers = sortAlphabetically(JSON.parse(localStorage.getItem('internalDrivers')) || []);
             
             const custDeliveryContainer = document.getElementById('settingsCustomersDeliveryList');
             if (custDeliveryContainer) {
@@ -1279,6 +1309,25 @@
                 }
             };
             reader.readAsText(file);
+        }
+
+        // Přepínač tmavého / světlého režimu
+        function toggleDarkMode() {
+            const isDark = document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', isDark);
+            updateThemeIcon(isDark);
+        }
+
+        function updateThemeIcon(isDark) {
+            const themeIcon = document.getElementById('themeIcon');
+            if (!themeIcon) return;
+            if (isDark) {
+                // Ikona Slunce (pro návrat do světlého režimu)
+                themeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path>`;
+            } else {
+                // Ikona Měsíc (pro návrat do tmavého režimu)
+                themeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>`;
+            }
         }
 
         function switchTab(tabId, event) {
