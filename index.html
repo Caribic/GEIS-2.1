@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Geis - Dispečink Svozů</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="style.css">
     
     <!-- PWA podpora pro iOS -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,6 +16,9 @@
     <!-- Firebase SDK (Compat verze pro zachování stability kódu) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <!-- Knihovna SheetJS pro export do Excelu -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <style>
         .hidden-tab { display: none; }
@@ -276,7 +278,7 @@
         
         <div class="flex justify-between items-center">
             <h2 class="text-lg font-bold text-[#003366] uppercase tracking-tight" id="statsTitle">Statistiky</h2>
-            <button id="btnExportExcel" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors">
+            <button id="btnExportExcel" onclick="exportStatsToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 Export Excel
             </button>
@@ -401,6 +403,26 @@
         if (localStorage.getItem('darkMode') === 'true') {
             document.body.classList.add('dark-mode');
             updateThemeIcon(true);
+        }
+
+        // Přepnutí tmavého / světlého režimu (chybělo)
+        function toggleDarkMode() {
+            const isDark = document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', isDark ? 'true' : 'false');
+            updateThemeIcon(isDark);
+        }
+
+        // Aktualizace ikonky slunce/měsíce podle aktivního režimu (chybělo)
+        function updateThemeIcon(isDark) {
+            const icon = document.getElementById('themeIcon');
+            if (!icon) return;
+            if (isDark) {
+                // Ikona slunce (pro přepnutí zpět do světlého režimu)
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>';
+            } else {
+                // Ikona měsíce (pro přepnutí do tmavého režimu)
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>';
+            }
         }
 
         const getTodayStr = () => {
@@ -617,7 +639,7 @@
                 document.getElementById('targetFP').value = '';
                 document.getElementById('targetKH').value = '';
                 document.getElementById('targetCustomer').value = '';
-            });
+            }).catch(err => alert('Uložení se nezdařilo: ' + err.message));
         }
 
         function openDetails(targetId) {
@@ -799,7 +821,7 @@
                 fp: fp,
                 kh: kh,
                 timestamp: new Date().toISOString()
-            });
+            }).catch(err => alert('Uložení nakládky se nezdařilo: ' + err.message));
         }
 
         function setGridFilter(filter) {
@@ -992,7 +1014,7 @@
                     spz: spz || "BEZ SPZ",
                     deliveries: [...draftDeliveries],
                     pickups: [...draftPickups]
-                });
+                }).catch(err => alert('Uložení plánu se nezdařilo: ' + err.message));
                 editingTrailerPlanId = null;
                 
                 const cancelBtn = document.getElementById('btnCancelTrailerEdit');
@@ -1012,7 +1034,7 @@
                     spz: spz || "BEZ SPZ",
                     deliveries: [...draftDeliveries],
                     pickups: [...draftPickups]
-                });
+                }).catch(err => alert('Uložení plánu se nezdařilo: ' + err.message));
             }
 
             draftDeliveries = [];
@@ -1224,6 +1246,101 @@
             outputHtml += makeStatsSectionHTML("Jiná vozidla (Smluvní / běžné svozy)", otherIcon, otherAgg);
 
             document.getElementById('statsContent').innerHTML = outputHtml;
+        }
+
+        // Export aktuálně zobrazených statistik do Excelu (.xlsx) (chybělo)
+        function exportStatsToExcel() {
+            const pickups = localPickups;
+            const targets = localDailyTargets;
+            const internalDrivers = JSON.parse(localStorage.getItem('internalDrivers')) || [];
+
+            const now = new Date();
+            const nowCopy = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            let filteredPickups = [];
+            let periodLabel = '';
+
+            if (currentStatsPeriod === 'week') {
+                const dayOfWeek = nowCopy.getDay();
+                const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                const firstDayOfWeek = new Date(nowCopy.setDate(nowCopy.getDate() + diffToMonday));
+                firstDayOfWeek.setHours(0, 0, 0, 0);
+                filteredPickups = pickups.filter(p => new Date(p.timestamp) >= firstDayOfWeek);
+                periodLabel = 'tento_tyden';
+            } else {
+                const firstDayOfMonth = new Date(nowCopy.getFullYear(), nowCopy.getMonth(), 1);
+                firstDayOfMonth.setHours(0, 0, 0, 0);
+                filteredPickups = pickups.filter(p => new Date(p.timestamp) >= firstDayOfMonth);
+                periodLabel = 'tento_mesic';
+            }
+
+            if (filteredPickups.length === 0) {
+                alert('V tomto období nejsou žádná data k exportu.');
+                return;
+            }
+
+            // List 1: Detailní řádky všech nakládek
+            const detailRows = filteredPickups.map(p => {
+                const targetObj = targets.find(t => t.id === p.targetId);
+                const custName = targetObj ? targetObj.customer : 'Neznámý';
+                const typ = internalDrivers.includes(p.driver) ? 'Návěs 33 EUR' : 'Smluvní řidič';
+                const datum = new Date(p.timestamp);
+                return {
+                    'Datum': datum.toLocaleDateString('cs-CZ'),
+                    'Čas': datum.toLocaleTimeString('cs-CZ'),
+                    'Zákazník': custName,
+                    'Řidič': p.driver,
+                    'Typ': typ,
+                    'FP': p.fp,
+                    'KH': p.kh
+                };
+            });
+
+            // List 2: Souhrn podle řidičů
+            const driverSummary = {};
+            filteredPickups.forEach(p => {
+                if (!driverSummary[p.driver]) {
+                    driverSummary[p.driver] = { fp: 0, kh: 0, jizd: 0 };
+                }
+                driverSummary[p.driver].fp += p.fp;
+                driverSummary[p.driver].kh += p.kh;
+                driverSummary[p.driver].jizd += 1;
+            });
+            const driverRows = Object.entries(driverSummary).map(([driver, val]) => ({
+                'Řidič': driver,
+                'Počet jízd': val.jizd,
+                'Celkem FP': val.fp,
+                'Celkem KH': val.kh,
+                'Přepočtené palety (FP + 0.5×KH)': val.fp + (val.kh * 0.5)
+            }));
+
+            // List 3: Souhrn podle zákazníků
+            const customerSummary = {};
+            filteredPickups.forEach(p => {
+                const targetObj = targets.find(t => t.id === p.targetId);
+                const custName = targetObj ? targetObj.customer : 'Neznámý';
+                if (!customerSummary[custName]) {
+                    customerSummary[custName] = { fp: 0, kh: 0 };
+                }
+                customerSummary[custName].fp += p.fp;
+                customerSummary[custName].kh += p.kh;
+            });
+            const customerRows = Object.entries(customerSummary).map(([cust, val]) => ({
+                'Zákazník': cust,
+                'Celkem FP': val.fp,
+                'Celkem KH': val.kh
+            }));
+
+            try {
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailRows), 'Detail nakládek');
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(driverRows), 'Souhrn řidiči');
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(customerRows), 'Souhrn zákazníci');
+
+                const fileName = `geis_svozy_statistiky_${periodLabel}_${getTodayStr()}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+            } catch (err) {
+                alert('Export do Excelu se nezdařil: ' + err.message);
+            }
         }
 
         function renderSettingsTab() {
