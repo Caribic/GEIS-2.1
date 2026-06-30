@@ -37,32 +37,25 @@
 </head>
 <body class="bg-gray-100 font-sans antialiased text-gray-900">
 
-    <!-- Záhlaví v korporátním stylu Geis -->
-    <header class="bg-white text-slate-900 p-4 shadow-md sticky top-0 z-10 border-b-4 border-[#96c11f] flex justify-between items-center">
-        <div class="flex items-center gap-3">
-            <img src="geis-logo.png" alt="Geis Logo" class="h-9 w-auto object-contain" onerror="this.style.display='none'">
-            <div class="leading-tight">
-                <h1 class="text-lg font-black tracking-tight text-[#002f6c] uppercase">Geis Svozy</h1>
-                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider" id="currentDateDisplay"></p>
+    <!-- Záhlaví s integrovaným kompaktním kalendářem -->
+    <header class="bg-white text-slate-900 p-3 shadow-md sticky top-0 z-20 border-b-4 border-[#96c11f] flex justify-between items-center gap-2">
+        <div class="flex items-center gap-2.5 min-w-0">
+            <img src="geis-logo.png" alt="Geis Logo" class="h-8 w-auto object-contain shrink-0" onerror="this.style.display='none'">
+            <div class="leading-tight min-w-0">
+                <h1 class="text-xs font-black tracking-tight text-[#002f6c] uppercase truncate">Geis Svozy</h1>
+                <!-- Kliknutím na datum skočí zpět na dnešní den -->
+                <p class="text-[9px] text-slate-500 font-bold uppercase tracking-wider truncate cursor-pointer hover:text-[#002f6c] active:scale-95 transition-transform" 
+                   id="currentDateDisplay" onclick="jumpToToday()" title="Skočit na dnešek"></p>
             </div>
         </div>
-    </header>
 
-    <!-- Globální bar s volbou data (společný pro Mřížku a Návěsy) -->
-    <div id="globalDateBar" class="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between gap-2">
-        <button onclick="stepDate(-1)" class="bg-white border border-gray-200 hover:bg-gray-100 p-2.5 rounded-lg text-slate-700 font-bold text-xs transition-colors flex items-center gap-1 active:scale-95 shadow-sm">
-            ◀ <span class="hidden sm:inline">Předchozí den</span>
-        </button>
-        <div class="flex items-center gap-2">
-            <input type="date" id="appDatePicker" onchange="setDate(this.value)" class="bg-white border border-gray-300 rounded-lg p-2 text-sm font-bold text-[#002f6c] outline-none focus:border-[#96c11f] h-10 shadow-sm text-center">
-            <button onclick="jumpToToday()" class="bg-[#002f6c] hover:bg-slate-900 text-white font-bold text-xs px-3 rounded-lg transition-colors h-10 flex items-center uppercase tracking-wider">
-                Dnes
-            </button>
+        <!-- Kompaktní ovládání kalendáře na pravé straně -->
+        <div id="headerDateControls" class="flex items-center gap-1 shrink-0">
+            <button onclick="stepDate(-1)" class="w-7 h-7 flex items-center justify-center bg-gray-50 active:bg-gray-200 border border-gray-200 rounded text-[9px] font-bold text-slate-700 shadow-sm transition-colors">◀</button>
+            <input type="date" id="appDatePicker" onchange="setDate(this.value)" class="h-7 text-[10px] font-bold text-[#002f6c] border border-gray-300 rounded px-1.5 bg-white text-center focus:outline-none shadow-sm cursor-pointer w-[95px] sm:w-[110px]">
+            <button onclick="stepDate(1)" class="w-7 h-7 flex items-center justify-center bg-gray-50 active:bg-gray-200 border border-gray-200 rounded text-[9px] font-bold text-slate-700 shadow-sm transition-colors">▶</button>
         </div>
-        <button onclick="stepDate(1)" class="bg-white border border-gray-200 hover:bg-gray-100 p-2.5 rounded-lg text-slate-700 font-bold text-xs transition-colors flex items-center gap-1 active:scale-95 shadow-sm">
-            <span class="hidden sm:inline">Následující den</span> ▶
-        </button>
-    </div>
+    </header>
 
     <!-- Mřížka sledování odběru -->
     <main id="tab-counter" class="active-tab p-4 space-y-5">
@@ -279,7 +272,7 @@
             <span class="text-[10px] mt-1 font-bold tracking-wide uppercase">Statistiky</span>
         </button>
         <button id="nav-settings" onclick="switchTab('settings', event)" class="text-gray-400 flex flex-col items-center transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37(2.37.996.608 2.296.07 2.572-1.065"></path></svg>
             <span class="text-[10px] mt-1 font-bold tracking-wide uppercase">Nastavení</span>
         </button>
     </nav>
@@ -1121,6 +1114,11 @@
             reader.readAsText(file);
         }
 
+        // Tlačítko Dnes kliknutím na datum v hlavičce
+        function jumpToToday() {
+            setDate(getTodayStr());
+        }
+
         function hardReset() {
             if(confirm("Opravdu chcete vymazat celou aplikaci včetně všech statistik a vrátit výchozí seznamy?")) {
                 localStorage.clear();
@@ -1134,11 +1132,11 @@
             document.getElementById('tab-stats').className = 'hidden-tab';
             document.getElementById('tab-settings').className = 'hidden-tab';
             
-            // Zobrazení globální lišty s kalendářem pouze na relevantních tabech
+            // Zobrazení kalendáře v záhlaví pouze na relevantních tabech
             if (tabId === 'counter' || tabId === 'trailers') {
-                document.getElementById('globalDateBar').style.display = 'flex';
+                document.getElementById('headerDateControls').style.display = 'flex';
             } else {
-                document.getElementById('globalDateBar').style.display = 'none';
+                document.getElementById('headerDateControls').style.display = 'none';
             }
 
             if (tabId === 'counter') {
