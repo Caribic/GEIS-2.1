@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Geis - Dispečink Svozů</title>
-    <link class="manifest" href="manifest.json">
+    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css">
     
     <!-- PWA podpora pro iOS -->
@@ -48,24 +48,24 @@
         </div>
     </header>
 
-    <main id="tab-counter" class="active-tab p-4 space-y-5">
-        
-        <!-- Ovládací prvek pro výběr dne (Kalendář) -->
-        <div class="bg-white rounded-xl shadow-sm p-3.5 border border-gray-200 flex items-center justify-between gap-2">
-            <button onclick="stepDate(-1)" class="bg-gray-100 hover:bg-gray-200 p-2.5 rounded-lg text-slate-700 font-bold text-xs transition-colors flex items-center gap-1 active:scale-95">
-                ◀ <span class="hidden sm:inline">Předchozí den</span>
-            </button>
-            <div class="flex items-center gap-2">
-                <input type="date" id="appDatePicker" onchange="setDate(this.value)" class="bg-gray-50 border border-gray-300 rounded-lg p-2 text-sm font-bold text-[#002f6c] outline-none focus:border-[#96c11f] h-10 shadow-sm text-center">
-                <button onclick="jumpToToday()" class="bg-[#002f6c] hover:bg-slate-900 text-white font-bold text-xs px-3 rounded-lg transition-colors h-10 flex items-center uppercase tracking-wider">
-                    Dnes
-                </button>
-            </div>
-            <button onclick="stepDate(1)" class="bg-gray-100 hover:bg-gray-200 p-2.5 rounded-lg text-slate-700 font-bold text-xs transition-colors flex items-center gap-1 active:scale-95">
-                <span class="hidden sm:inline">Následující den</span> ▶
+    <!-- Globální bar s volbou data (společný pro Mřížku a Návěsy) -->
+    <div id="globalDateBar" class="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between gap-2">
+        <button onclick="stepDate(-1)" class="bg-white border border-gray-200 hover:bg-gray-100 p-2.5 rounded-lg text-slate-700 font-bold text-xs transition-colors flex items-center gap-1 active:scale-95 shadow-sm">
+            ◀ <span class="hidden sm:inline">Předchozí den</span>
+        </button>
+        <div class="flex items-center gap-2">
+            <input type="date" id="appDatePicker" onchange="setDate(this.value)" class="bg-white border border-gray-300 rounded-lg p-2 text-sm font-bold text-[#002f6c] outline-none focus:border-[#96c11f] h-10 shadow-sm text-center">
+            <button onclick="jumpToToday()" class="bg-[#002f6c] hover:bg-slate-900 text-white font-bold text-xs px-3 rounded-lg transition-colors h-10 flex items-center uppercase tracking-wider">
+                Dnes
             </button>
         </div>
-        
+        <button onclick="stepDate(1)" class="bg-white border border-gray-200 hover:bg-gray-100 p-2.5 rounded-lg text-slate-700 font-bold text-xs transition-colors flex items-center gap-1 active:scale-95 shadow-sm">
+            <span class="hidden sm:inline">Následující den</span> ▶
+        </button>
+    </div>
+
+    <!-- Mřížka sledování odběru -->
+    <main id="tab-counter" class="active-tab p-4 space-y-5">
         <!-- Formulář aktivace zákazníka -->
         <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
             <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Aktivovat zákazníka pro vybraný den</h2>
@@ -103,6 +103,56 @@
             
             <div id="activeCountersList" class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             </div>
+        </div>
+    </main>
+
+    <!-- Plány Návěsů 33 EUR -->
+    <main id="tab-trailers" class="hidden-tab p-4 space-y-5">
+        <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Zapsat plán návěsu (33 EUR)</h2>
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[11px] font-semibold text-gray-400 uppercase">Firemní řidič</label>
+                        <select id="trailerDriverSelect" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 mt-1 text-sm outline-none font-medium h-10 shadow-sm focus:border-[#96c11f]"></select>
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-semibold text-gray-400 uppercase">SPZ Návěsu</label>
+                        <input type="text" id="trailerSPZInput" placeholder="Např. 3H1 1234" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 mt-1 text-sm font-bold h-10 shadow-sm outline-none focus:border-[#96c11f] uppercase" onfocus="this.select()">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Rozvoz -->
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                        <label class="text-[11px] font-semibold text-blue-700 uppercase">Rozvoz se zbožím</label>
+                        <div class="flex gap-2 mt-1">
+                            <select id="trailerDeliverySelect" class="flex-1 bg-white border border-gray-200 rounded-lg p-2 text-xs outline-none font-medium h-9 shadow-sm focus:border-[#96c11f]"></select>
+                            <button onclick="addDraftCustomer('delivery')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 rounded-lg text-xs transition-colors">+</button>
+                        </div>
+                        <div id="draftDeliveriesList" class="flex flex-wrap gap-1.5 mt-2"></div>
+                    </div>
+
+                    <!-- Svoz -->
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                        <label class="text-[11px] font-semibold text-green-700 uppercase">Svoz prázdných / palet</label>
+                        <div class="flex gap-2 mt-1">
+                            <select id="trailerPickupSelect" class="flex-1 bg-white border border-gray-200 rounded-lg p-2 text-xs outline-none font-medium h-9 shadow-sm focus:border-[#96c11f]"></select>
+                            <button onclick="addDraftCustomer('pickup')" class="bg-green-600 hover:bg-green-700 text-white font-bold px-3 rounded-lg text-xs transition-colors">+</button>
+                        </div>
+                        <div id="draftPickupsList" class="flex flex-wrap gap-1.5 mt-2"></div>
+                    </div>
+                </div>
+
+                <button onclick="saveTrailerPlan()" class="w-full bg-[#002f6c] hover:bg-slate-900 text-white font-bold py-2.5 rounded-lg text-sm transition-colors shadow-sm active:scale-[0.99] uppercase tracking-wider">
+                    Uložit plán řidiče na tento den
+                </button>
+            </div>
+        </div>
+
+        <div>
+            <h3 class="font-bold text-[#002f6c] text-xs uppercase tracking-wider mb-3">Denní plán nasazení návěsů</h3>
+            <div id="trailerPlansList" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
         </div>
     </main>
 
@@ -166,21 +216,30 @@
     <!-- Nastavení -->
     <main id="tab-settings" class="hidden-tab p-4 space-y-6">
         <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
-            <h2 class="text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">Správa Zákazníků</h2>
+            <h2 class="text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">Firemní řidiči (Návěsy 33 EUR)</h2>
             <div class="flex space-x-2 mb-3">
-                <input type="text" id="newCustomerName" placeholder="Název zákazníka" class="flex-1 bg-gray-50 border rounded-lg p-2 text-sm outline-none focus:border-[#96c11f]">
-                <button onclick="addItem('customers', 'newCustomerName')" class="bg-[#002f6c] text-white px-4 rounded-lg font-bold text-sm hover:bg-black transition-colors">+</button>
+                <input type="text" id="newInternalDriverName" placeholder="Jméno firemního řidiče" class="flex-1 bg-gray-50 border rounded-lg p-2 text-sm outline-none focus:border-[#96c11f]">
+                <button onclick="addItem('internalDrivers', 'newInternalDriverName')" class="bg-[#002f6c] text-white px-4 rounded-lg font-bold text-sm hover:bg-black transition-colors">+</button>
             </div>
-            <div id="settingsCustomersList" class="max-h-40 overflow-y-auto space-y-1 pr-1 text-sm"></div>
+            <div id="settingsInternalDriversList" class="max-h-40 overflow-y-auto space-y-1 pr-1 text-sm"></div>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
-            <h2 class="text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">Správa Řidičů</h2>
+            <h2 class="text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">Smluvní řidiči (Běžný svoz)</h2>
             <div class="flex space-x-2 mb-3">
                 <input type="text" id="newDriverName" placeholder="Jméno řidiče" class="flex-1 bg-gray-50 border rounded-lg p-2 text-sm outline-none focus:border-[#96c11f]">
                 <button onclick="addItem('drivers', 'newDriverName')" class="bg-[#002f6c] text-white px-4 rounded-lg font-bold text-sm hover:bg-black transition-colors">+</button>
             </div>
             <div id="settingsDriversList" class="max-h-40 overflow-y-auto space-y-1 pr-1 text-sm"></div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+            <h2 class="text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">Seznam Zákazníků</h2>
+            <div class="flex space-x-2 mb-3">
+                <input type="text" id="newCustomerName" placeholder="Název zákazníka" class="flex-1 bg-gray-50 border rounded-lg p-2 text-sm outline-none focus:border-[#96c11f]">
+                <button onclick="addItem('customers', 'newCustomerName')" class="bg-[#002f6c] text-white px-4 rounded-lg font-bold text-sm hover:bg-black transition-colors">+</button>
+            </div>
+            <div id="settingsCustomersList" class="max-h-40 overflow-y-auto space-y-1 pr-1 text-sm"></div>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200 space-y-3">
@@ -210,6 +269,11 @@
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
             <span class="text-[10px] mt-1 font-bold tracking-wide uppercase">Mřížka</span>
         </button>
+        <button id="nav-trailers" onclick="switchTab('trailers', event)" class="text-gray-400 flex flex-col items-center transition-colors">
+            <!-- Ikona návěsu (truck) -->
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V14a1 1 0 01-1 1h-1m-5.333-3H15"></path></svg>
+            <span class="text-[10px] mt-1 font-bold tracking-wide uppercase">Návěsy</span>
+        </button>
         <button id="nav-stats" onclick="switchTab('stats', event)" class="text-gray-400 flex flex-col items-center transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
             <span class="text-[10px] mt-1 font-bold tracking-wide uppercase">Statistiky</span>
@@ -223,15 +287,23 @@
     <script>
         const defaultCustomers = ["WIMEX","ALBI","DRANA","V-GARDEN","GARLAND","HP TRONIC","SHIPMALL","KRPA","TAMADEX","Z-TRADE","HOBRA ŠKOLNÍK","PENTA","FOMEI","SKOLIL KOMPOZIT","VETRO-PLUS","HR.PEKÁRNA","VOR","ITADECO","MEKR´S","SECO","COROLL","DETECHA","NUTRICIUS","KOMAP","ELPRIM","FANTON","TCM POINT","HORNBACH"];
         const defaultDrivers = ["KINDA","DVOŘÁK","PUTERKA","VRABEC","DOLEŽAL","KŘÍŽ","DUŽDA","VAŇÁTKO","DAVID","BAŽANT","KLEIN","PARTEL","SVYATYLO","HAVEL","KOCOUREK","DRAPÁK","RICHTER","BÁRTA"];
+        // Firemní řidiči pro 33 EUR návěsy
+        const defaultInternalDrivers = ["BAŽANT", "KLEIN", "ŠPIČKA", "DOLEŽAL", "TĚŠÍNSKÝ", "VRABEC", "VAŇÁTKO"];
 
         let currentTargetId = null;
         let currentGridFilter = 'all'; 
         let currentStatsPeriod = 'week';
 
+        // Dočasná pole pro návrh rozvozů a svozů návěsu
+        let draftDeliveries = [];
+        let draftPickups = [];
+
         if (!localStorage.getItem('customers')) localStorage.setItem('customers', JSON.stringify(defaultCustomers));
         if (!localStorage.getItem('drivers')) localStorage.setItem('drivers', JSON.stringify(defaultDrivers));
+        if (!localStorage.getItem('internalDrivers')) localStorage.setItem('internalDrivers', JSON.stringify(defaultInternalDrivers));
         if (!localStorage.getItem('dailyTargets')) localStorage.setItem('dailyTargets', JSON.stringify([]));
         if (!localStorage.getItem('pickups')) localStorage.setItem('pickups', JSON.stringify([]));
+        if (!localStorage.getItem('trailerPlans')) localStorage.setItem('trailerPlans', JSON.stringify([]));
 
         const getTodayStr = () => {
             const d = new Date();
@@ -241,7 +313,7 @@
             return `${year}-${month}-${day}`;
         };
 
-        // Aktivní datum pro operace v dispečinku (výchozí je dnešní den)
+        // Aktivní globální datum (výchozí dnešek)
         let activeDate = getTodayStr();
 
         function formatDateToCzech(dateStr) {
@@ -262,7 +334,10 @@
             if (!dateStr) return;
             activeDate = dateStr;
             updateDateUI();
+            
+            // Překreslení aktivní záložky k novému datu
             renderCounterTab();
+            renderTrailersTab();
         }
 
         function stepDate(days) {
@@ -518,13 +593,13 @@
             const targets = JSON.parse(localStorage.getItem('dailyTargets')) || [];
             const pickups = JSON.parse(localStorage.getItem('pickups')) || [];
             const container = document.getElementById('activeCountersList');
+            if(!container) return;
             
             container.innerHTML = '';
-            // Filtrování cílů na základě aktivního dne z kalendáře
             const todayTargets = targets.filter(t => t.date === activeDate);
 
             if (todayTargets.length === 0) {
-                container.innerHTML = '<div class="col-span-2 sm:col-span-3 md:col-span-4 text-sm text-gray-400 text-center py-8 bg-white rounded-xl border border-dashed border-gray-300 font-medium shadow-sm">Žádný zákazník není pro vybraný den aktivní.<br><span class="text-[11px] text-gray-400 font-normal">Zadejte cíl ve formuláři výše.</span></div>';
+                container.innerHTML = '<div class="col-span-2 sm:col-span-3 md:col-span-4 text-sm text-gray-400 text-center py-8 bg-white rounded-xl border border-dashed border-gray-300 font-medium shadow-sm">Žádný zákazník není pro tento den aktivní.<br><span class="text-[11px] text-gray-400 font-normal">Zadejte cíl ve formuláři výše.</span></div>';
                 return;
             }
 
@@ -588,7 +663,6 @@
 
                 let tileHtml = '';
                 if (isDone) {
-                    // Dokončený svoz v zeleném designu Geis
                     tileHtml = `
                     <div onclick="openDetails('${t.id}')" class="bg-[#f4f9e8] border-l-4 border-l-[#96c11f] border-y border-r border-gray-200 rounded-xl p-3 shadow-sm active:scale-95 transition-all cursor-pointer flex flex-col justify-between min-h-[120px]">
                         <div class="font-bold text-[#002f6c] text-sm leading-tight break-words flex items-start justify-between gap-1">
@@ -596,7 +670,6 @@
                             <span class="text-[#96c11f] font-black text-xs">✓</span>
                         </div>
                         <div class="mt-2">
-                            <!-- Indikátor splnění postupu -->
                             <div class="w-full bg-gray-200 rounded-full h-1.5 mb-2">
                                 <div class="bg-[#96c11f] h-1.5 rounded-full" style="width: 100%"></div>
                             </div>
@@ -606,7 +679,6 @@
                         </div>
                     </div>`;
                 } else {
-                    // Čekající svoz s barevným Geis okrajem a dynamickým progress barem
                     tileHtml = `
                     <div onclick="openDetails('${t.id}')" class="bg-white border-l-4 border-l-[#002f6c] border-y border-r border-gray-200 rounded-xl p-3 shadow-sm hover:border-[#96c11f] active:scale-95 transition-all cursor-pointer flex flex-col justify-between min-h-[120px]">
                         <div class="font-bold text-slate-800 text-sm leading-tight break-words">${t.customer}</div>
@@ -626,7 +698,6 @@
                                 <span class="font-bold ${diffKH < 0 ? 'text-orange-600' : (remainingKH > 0 ? 'text-slate-800' : 'text-gray-300')}">${diffKH < 0 ? Math.abs(diffKH) : remainingKH}</span>
                             </div>
                             
-                            <!-- Dynamický grafický průběh svozu -->
                             <div class="mt-2">
                                 <div class="flex justify-between text-[9px] text-gray-400 font-bold mb-0.5">
                                     <span>HOTOVO</span>
@@ -642,6 +713,160 @@
                 container.innerHTML += tileHtml;
             });
         }
+
+        // --- ZÁLOŽKA NÁVĚSY ---
+        function addDraftCustomer(type) {
+            const selectId = type === 'delivery' ? 'trailerDeliverySelect' : 'trailerPickupSelect';
+            const customer = document.getElementById(selectId).value;
+            if (!customer) return;
+
+            if (type === 'delivery') {
+                if (!draftDeliveries.includes(customer)) {
+                    draftDeliveries.push(customer);
+                }
+            } else {
+                if (!draftPickups.includes(customer)) {
+                    draftPickups.push(customer);
+                }
+            }
+            renderDraftLists();
+        }
+
+        function removeDraftCustomer(type, index) {
+            if (type === 'delivery') {
+                draftDeliveries.splice(index, 1);
+            } else {
+                draftPickups.splice(index, 1);
+            }
+            renderDraftLists();
+        }
+
+        function renderDraftLists() {
+            const delContainer = document.getElementById('draftDeliveriesList');
+            delContainer.innerHTML = draftDeliveries.map((c, idx) => `
+                <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-lg border border-blue-200 shadow-sm">
+                    ${c}
+                    <button onclick="removeDraftCustomer('delivery', ${idx})" class="text-blue-500 hover:text-blue-950 font-bold ml-1 active:scale-90">✕</button>
+                </span>
+            `).join('');
+
+            const pickContainer = document.getElementById('draftPickupsList');
+            pickContainer.innerHTML = draftPickups.map((c, idx) => `
+                <span class="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-semibold px-2.5 py-1 rounded-lg border border-green-200 shadow-sm">
+                    ${c}
+                    <button onclick="removeDraftCustomer('pickup', ${idx})" class="text-green-500 hover:text-green-950 font-bold ml-1 active:scale-90">✕</button>
+                </span>
+            `).join('');
+        }
+
+        function saveTrailerPlan() {
+            const driver = document.getElementById('trailerDriverSelect').value;
+            const spz = document.getElementById('trailerSPZInput').value.trim().toUpperCase();
+            
+            if (!driver) { alert('Vyberte prosím řidiče!'); return; }
+            if (draftDeliveries.length === 0 && draftPickups.length === 0) {
+                alert('Přiřaďte k řidiči alespoň jednoho zákazníka na rozvoz nebo svoz!');
+                return;
+            }
+
+            let plans = JSON.parse(localStorage.getItem('trailerPlans')) || [];
+            
+            // Kontrola duplicity plánu řidiče v tentýž den
+            if (plans.some(p => p.date === activeDate && p.driver === driver)) {
+                alert('Tento řidič již má na vybraný den uložený plán. Nejprve ho případně smažte níže.');
+                return;
+            }
+
+            plans.push({
+                id: Date.now().toString(),
+                date: activeDate,
+                driver: driver,
+                spz: spz || "BEZ SPZ",
+                deliveries: [...draftDeliveries],
+                pickups: [...draftPickups]
+            });
+
+            localStorage.setItem('trailerPlans', JSON.stringify(plans));
+            
+            // Reset formuláře
+            draftDeliveries = [];
+            draftPickups = [];
+            document.getElementById('trailerSPZInput').value = '';
+            renderDraftLists();
+            renderTrailersTab();
+        }
+
+        function deleteTrailerPlan(planId) {
+            if (confirm("Opravdu chcete smazat tento plán návěsu?")) {
+                let plans = JSON.parse(localStorage.getItem('trailerPlans')) || [];
+                plans = plans.filter(p => p.id !== planId);
+                localStorage.setItem('trailerPlans', JSON.stringify(plans));
+                renderTrailersTab();
+            }
+        }
+
+        function renderTrailersTab() {
+            const internalDrivers = JSON.parse(localStorage.getItem('internalDrivers')) || [];
+            const customers = JSON.parse(localStorage.getItem('customers')) || [];
+            const plans = JSON.parse(localStorage.getItem('trailerPlans')) || [];
+
+            // Naplnění dropdownů
+            const drvSelect = document.getElementById('trailerDriverSelect');
+            if (drvSelect) {
+                drvSelect.innerHTML = internalDrivers.map(d => `<option value="${d}">${d}</option>`).join('');
+            }
+
+            const delSelect = document.getElementById('trailerDeliverySelect');
+            const pickSelect = document.getElementById('trailerPickupSelect');
+            if (delSelect && pickSelect) {
+                const customerOptions = customers.map(c => `<option value="${c}">${c}</option>`).join('');
+                delSelect.innerHTML = customerOptions;
+                pickSelect.innerHTML = customerOptions;
+            }
+
+            // Vypsání plánů pro aktivní den
+            const plansList = document.getElementById('trailerPlansList');
+            if (!plansList) return;
+
+            const dayPlans = plans.filter(p => p.date === activeDate);
+            if (dayPlans.length === 0) {
+                plansList.innerHTML = `<div class="col-span-1 text-sm text-gray-400 text-center py-6 bg-white rounded-xl border border-dashed border-gray-300 font-medium">Pro tento den není naplánován žádný návěs.</div>`;
+                return;
+            }
+
+            plansList.innerHTML = dayPlans.map(p => `
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="bg-slate-900/5 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                        <div>
+                            <span class="text-[10px] font-black text-[#002f6c] tracking-wide uppercase">NÁVĚS 33 EUR ${p.spz ? `• SPZ: ${p.spz}` : ''}</span>
+                            <h4 class="text-sm font-black text-slate-800 uppercase leading-none mt-0.5">${p.driver}</h4>
+                        </div>
+                        <button onclick="deleteTrailerPlan('${p.id}')" class="text-xs text-[#e30613] hover:text-red-800 font-bold px-2 py-1 transition-colors">Odstranit</button>
+                    </div>
+                    <div class="p-4 space-y-3">
+                        <div>
+                            <span class="text-[9px] font-bold text-blue-500 uppercase tracking-wider block mb-1">ROZVOZ SE ZBOŽÍM (${p.deliveries.length})</span>
+                            <div class="flex flex-wrap gap-1">
+                                ${p.deliveries.length > 0 
+                                    ? p.deliveries.map(d => `<span class="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded border border-blue-200">${d}</span>`).join('')
+                                    : '<span class="text-xs text-gray-400 italic">Bez rozvozu</span>'
+                                }
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-[9px] font-bold text-green-600 uppercase tracking-wider block mb-1">SVOZ PALET / ZBOŽÍ (${p.pickups.length})</span>
+                            <div class="flex flex-wrap gap-1">
+                                ${p.pickups.length > 0 
+                                    ? p.pickups.map(s => `<span class="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded border border-green-200">${s}</span>`).join('')
+                                    : '<span class="text-xs text-gray-400 italic">Bez svozu</span>'
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        // --- KONEC NÁVĚSŮ ---
 
         function renderStats(period) {
             currentStatsPeriod = period;
@@ -809,6 +1034,7 @@
         function renderSettingsTab() {
             const custs = JSON.parse(localStorage.getItem('customers')) || [];
             const drvs = JSON.parse(localStorage.getItem('drivers')) || [];
+            const internalDrivers = JSON.parse(localStorage.getItem('internalDrivers')) || [];
             
             const custContainer = document.getElementById('settingsCustomersList');
             custContainer.innerHTML = custs.map((c, idx) => `
@@ -823,6 +1049,14 @@
                 <div class="flex justify-between items-center bg-gray-50 p-2 rounded-lg border border-gray-100">
                     <span class="font-medium text-gray-700">${d}</span>
                     <button onclick="removeItem('drivers', ${idx})" class="text-[#e30613] font-bold px-2 hover:text-red-700">✕</button>
+                </div>
+            `).join('');
+
+            const intDrvContainer = document.getElementById('settingsInternalDriversList');
+            intDrvContainer.innerHTML = internalDrivers.map((idrv, idx) => `
+                <div class="flex justify-between items-center bg-gray-50 p-2 rounded-lg border border-gray-100">
+                    <span class="font-medium text-gray-700">${idrv}</span>
+                    <button onclick="removeItem('internalDrivers', ${idx})" class="text-[#e30613] font-bold px-2 hover:text-red-700">✕</button>
                 </div>
             `).join('');
 
@@ -843,6 +1077,7 @@
             localStorage.setItem(key, JSON.stringify(list));
             input.value = '';
             renderSettingsTab();
+            renderTrailersTab();
         }
 
         function removeItem(key, index) {
@@ -850,6 +1085,7 @@
             list.splice(index, 1);
             localStorage.setItem(key, JSON.stringify(list));
             renderSettingsTab();
+            renderTrailersTab();
         }
 
         function exportData() {
@@ -894,9 +1130,17 @@
 
         function switchTab(tabId, event) {
             document.getElementById('tab-counter').className = 'hidden-tab';
+            document.getElementById('tab-trailers').className = 'hidden-tab';
             document.getElementById('tab-stats').className = 'hidden-tab';
             document.getElementById('tab-settings').className = 'hidden-tab';
             
+            // Zobrazení globální lišty s kalendářem pouze na relevantních tabech
+            if (tabId === 'counter' || tabId === 'trailers') {
+                document.getElementById('globalDateBar').style.display = 'flex';
+            } else {
+                document.getElementById('globalDateBar').style.display = 'none';
+            }
+
             if (tabId === 'counter') {
                 document.getElementById(`tab-${tabId}`).className = 'active-tab p-4 space-y-5';
             } else {
@@ -915,22 +1159,16 @@
             }
 
             if(tabId === 'counter') renderCounterTab();
+            if(tabId === 'trailers') renderTrailersTab();
             if(tabId === 'stats') renderStats('week');
             if(tabId === 'settings') renderSettingsTab();
         }
 
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Service Worker úspěšně registrován.'))
-                    .catch(err => console.warn('Registrace Service Workeru selhala:', err));
-            });
-        }
-
-        // Prvotní nastavení při načtení
+        // Prvotní nastavení při spuštění
         updateDateUI();
         renderSettingsTab();
         renderCounterTab();
+        renderTrailersTab();
     </script>
 </body>
 </html>
