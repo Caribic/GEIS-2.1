@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Geis - Dispečink Svozů</title>
-    <link rel="manifest" href="manifest.json">
+    <link class="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css">
     
     <!-- PWA podpora pro iOS -->
@@ -50,9 +50,25 @@
 
     <main id="tab-counter" class="active-tab p-4 space-y-5">
         
+        <!-- Ovládací prvek pro výběr dne (Kalendář) -->
+        <div class="bg-white rounded-xl shadow-sm p-3.5 border border-gray-200 flex items-center justify-between gap-2">
+            <button onclick="stepDate(-1)" class="bg-gray-100 hover:bg-gray-200 p-2.5 rounded-lg text-slate-700 font-bold text-xs transition-colors flex items-center gap-1 active:scale-95">
+                ◀ <span class="hidden sm:inline">Předchozí den</span>
+            </button>
+            <div class="flex items-center gap-2">
+                <input type="date" id="appDatePicker" onchange="setDate(this.value)" class="bg-gray-50 border border-gray-300 rounded-lg p-2 text-sm font-bold text-[#002f6c] outline-none focus:border-[#96c11f] h-10 shadow-sm text-center">
+                <button onclick="jumpToToday()" class="bg-[#002f6c] hover:bg-slate-900 text-white font-bold text-xs px-3 rounded-lg transition-colors h-10 flex items-center uppercase tracking-wider">
+                    Dnes
+                </button>
+            </div>
+            <button onclick="stepDate(1)" class="bg-gray-100 hover:bg-gray-200 p-2.5 rounded-lg text-slate-700 font-bold text-xs transition-colors flex items-center gap-1 active:scale-95">
+                <span class="hidden sm:inline">Následující den</span> ▶
+            </button>
+        </div>
+        
         <!-- Formulář aktivace zákazníka -->
         <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
-            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Aktivovat zákazníka pro dnešní den</h2>
+            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Aktivovat zákazníka pro vybraný den</h2>
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-3 mb-3">
                 <div>
                     <label class="text-[11px] font-semibold text-gray-400 uppercase">Zákazník</label>
@@ -77,7 +93,7 @@
         <!-- Mřížka sledování -->
         <div>
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                <h3 class="font-bold text-[#002f6c] text-xs uppercase tracking-wider">Dnešní aktivní sledování odběru</h3>
+                <h3 class="font-bold text-[#002f6c] text-xs uppercase tracking-wider">Aktivní sledování odběru</h3>
                 <div class="flex bg-gray-200/70 p-0.5 rounded-lg text-xs font-semibold self-start sm:self-auto shadow-inner">
                     <button onclick="setGridFilter('all')" id="filter-all" class="px-3 py-1 rounded-md transition-all bg-white text-slate-800 shadow-sm">Všechny</button>
                     <button onclick="setGridFilter('pending')" id="filter-pending" class="px-3 py-1 rounded-md transition-all text-gray-500 hover:text-slate-800">Čekající</button>
@@ -116,7 +132,7 @@
                 <div id="modalFormContainer"></div>
 
                 <div class="space-y-2">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Historie dnešních nakládek vozidel:</p>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Historie nakládek vozidel:</p>
                     <div id="modalHistoryContainer" class="space-y-1.5 max-h-48 overflow-y-auto pr-1"></div>
                 </div>
                 
@@ -217,9 +233,6 @@
         if (!localStorage.getItem('dailyTargets')) localStorage.setItem('dailyTargets', JSON.stringify([]));
         if (!localStorage.getItem('pickups')) localStorage.setItem('pickups', JSON.stringify([]));
 
-        const today = new Date();
-        document.getElementById('currentDateDisplay').textContent = today.toLocaleDateString('cs-CZ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
         const getTodayStr = () => {
             const d = new Date();
             const year = d.getFullYear();
@@ -228,18 +241,58 @@
             return `${year}-${month}-${day}`;
         };
 
+        // Aktivní datum pro operace v dispečinku (výchozí je dnešní den)
+        let activeDate = getTodayStr();
+
+        function formatDateToCzech(dateStr) {
+            const parts = dateStr.split('-');
+            const d = new Date(parts[0], parts[1] - 1, parts[2]);
+            return d.toLocaleDateString('cs-CZ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        function updateDateUI() {
+            document.getElementById('currentDateDisplay').textContent = formatDateToCzech(activeDate);
+            const picker = document.getElementById('appDatePicker');
+            if (picker) {
+                picker.value = activeDate;
+            }
+        }
+
+        function setDate(dateStr) {
+            if (!dateStr) return;
+            activeDate = dateStr;
+            updateDateUI();
+            renderCounterTab();
+        }
+
+        function stepDate(days) {
+            const parts = activeDate.split('-');
+            const d = new Date(parts[0], parts[1] - 1, parts[2]);
+            d.setDate(d.getDate() + days);
+            
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            
+            setDate(`${year}-${month}-${day}`);
+        }
+
+        function jumpToToday() {
+            setDate(getTodayStr());
+        }
+
         function createDailyTarget() {
             const customer = document.getElementById('targetCustomer').value;
             const fp = parseInt(document.getElementById('targetFP').value) || 0;
             const kh = parseInt(document.getElementById('targetKH').value) || 0;
-            const dateStr = getTodayStr();
+            const dateStr = activeDate;
 
             if (fp === 0 && kh === 0) { alert('Zadejte cílové množství palet!'); return; }
 
             let targets = JSON.parse(localStorage.getItem('dailyTargets'));
             
             if (targets.some(t => t.customer === customer && t.date === dateStr)) {
-                alert('Tento zákazník již má pro dnešek aktivní cíl.');
+                alert('Tento zákazník již má pro vybraný den aktivní cíl.');
                 return;
             }
 
@@ -292,7 +345,7 @@
         }
 
         function deleteTarget(targetId) {
-            if (confirm("Opravdu chcete tohoto zákazníka smazat z dnešního svozu? Smažou se i jeho dnešní zadané nakládky.")) {
+            if (confirm("Opravdu chcete tohoto zákazníka smazat z dnešního svozu? Smažou se i jeho dnes zadané nakládky.")) {
                 let targets = JSON.parse(localStorage.getItem('dailyTargets')) || [];
                 let pickups = JSON.parse(localStorage.getItem('pickups')) || [];
                 
@@ -414,7 +467,7 @@
                     <button onclick="deletePickup('${p.id}')" class="text-[#e30613] hover:text-red-800 font-bold px-2 text-sm" title="Stornovat nakládku">✕</button>
                 </div>`;
             });
-            historyContainer.innerHTML = historyHtml || '<p class="text-xs text-gray-400 italic text-center py-2">Dnes zatím žádný řidič neodebíral.</p>';
+            historyContainer.innerHTML = historyHtml || '<p class="text-xs text-gray-400 italic text-center py-2">U tohoto cíle zatím žádný řidič neodebíral.</p>';
         }
 
         function saveModalPickup(targetId) {
@@ -467,11 +520,11 @@
             const container = document.getElementById('activeCountersList');
             
             container.innerHTML = '';
-            const todayStr = getTodayStr();
-            const todayTargets = targets.filter(t => t.date === todayStr);
+            // Filtrování cílů na základě aktivního dne z kalendáře
+            const todayTargets = targets.filter(t => t.date === activeDate);
 
             if (todayTargets.length === 0) {
-                container.innerHTML = '<div class="col-span-2 sm:col-span-3 md:col-span-4 text-sm text-gray-400 text-center py-8 bg-white rounded-xl border border-dashed border-gray-300 font-medium shadow-sm">Žádný zákazník není pro dnešek aktivní.<br><span class="text-[11px] text-gray-400 font-normal">Zadejte cíl ve formuláři výše.</span></div>';
+                container.innerHTML = '<div class="col-span-2 sm:col-span-3 md:col-span-4 text-sm text-gray-400 text-center py-8 bg-white rounded-xl border border-dashed border-gray-300 font-medium shadow-sm">Žádný zákazník není pro vybraný den aktivní.<br><span class="text-[11px] text-gray-400 font-normal">Zadejte cíl ve formuláři výše.</span></div>';
                 return;
             }
 
@@ -874,6 +927,8 @@
             });
         }
 
+        // Prvotní nastavení při načtení
+        updateDateUI();
         renderSettingsTab();
         renderCounterTab();
     </script>
