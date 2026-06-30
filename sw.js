@@ -1,13 +1,12 @@
 const CACHE_NAME = 'svoz-palet-v12'; 
 
-// Relativní cesty zajišťují kompatibilitu na jakékoliv doméně/složce na GitHubu
 const urlsToCache = [
   './',
   'index.html',
-  'manifest.json'
+  'manifest.json',
+  'style.css'
 ];
 
-// Instalace a uložení nezbytných souborů do paměti (cache)
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -18,7 +17,6 @@ self.addEventListener('install', event => {
   );
 });
 
-// Aktivace nového Service Workeru a smazání starých verzí mezipaměti
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -33,7 +31,6 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Strategie Cache-First s přechodem na síť
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
