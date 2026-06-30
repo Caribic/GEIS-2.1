@@ -1,11 +1,10 @@
-const CACHE_NAME = 'svoz-palet-v11'; 
+const CACHE_NAME = 'svoz-palet-v12'; 
 
 // Relativní cesty zajišťují kompatibilitu na jakékoliv doméně/složce na GitHubu
 const urlsToCache = [
   './',
   'index.html',
-  'manifest.json',
-  'style.css'
+  'manifest.json'
 ];
 
 // Instalace a uložení nezbytných souborů do paměti (cache)
